@@ -34,7 +34,7 @@ const defaultContent: SiteContent = {
     phone: "+52 55 0000 0000",
     whatsapp: "5215500000000",
     email: "info@catering.com",
-    city: "Área Metropolitana",
+    city: "Monterrey, Nuevo León",
     hours: "Lun - Sáb: 9:00 - 19:00",
   },
   publicMenuSection: {
