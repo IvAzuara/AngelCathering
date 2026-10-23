@@ -4,15 +4,17 @@ obj/
 
 # ─── Node / Frontend ─────────────────────────────────────────────────────────
 node_modules/
-MMCargas.UI/dist/
-MMCargas.UI/dist-ssr/
+AngelCathering.UI/dist/
+AngelCathering.UI/dist-ssr/
 
 # ─── Secrets & environment config ────────────────────────────────────────────
-# DB and JWT settings come ONLY from environment variables (.env, copy .env.example).
-MMCargas.UI/.env
-MMCargas.UI/.env.local
-MMCargas.UI/.env.*.local
+# Jamás subir archivos .env con credenciales
 .env
+.env.*
+!.env.example
+AngelCathering.UI/.env
+AngelCathering.UI/.env.local
+AngelCathering.UI/.env.*.local
 
 # ─── IDE / editor artifacts ──────────────────────────────────────────────────
 *.user
@@ -28,12 +30,3 @@ logs/
 pnpm-debug.log*
 *.suo
 *.sw?
-
-# ─── Agent session state ──────────────────────────────────────────────────────
-.agents/state/session/*
-!.agents/state/session/.gitkeep
-
-# ─── Agent workspace and AI instructions (local only) ─────────────────────
-.agents/
-CLAUDE.md
-GEMINI.md

@@ -3,6 +3,9 @@ name: Deploy Frontend to GitHub Pages
 on:
   push:
     branches: ["main"]
+    paths:
+      - "AngelCathering.UI/**"
+      - ".github/workflows/deploy-pages.yml"
   workflow_dispatch:
 
 permissions:
@@ -37,10 +40,12 @@ jobs:
           cache-dependency-path: AngelCathering.UI/pnpm-lock.yaml
 
       - name: Install dependencies
-        run: cd AngelCathering.UI && pnpm install
+        run: cd AngelCathering.UI && pnpm install --frozen-lockfile
 
-      - name: Build
+      - name: Build with Production API URL
         run: cd AngelCathering.UI && pnpm build
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
