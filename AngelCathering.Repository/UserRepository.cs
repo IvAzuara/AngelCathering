@@ -25,9 +25,7 @@ public class UserRepository : IUserRepository
         const string sql = """
             SELECT id_user AS IdUser, username, password_hash AS PasswordHash, 
                    full_name AS FullName, is_active AS IsActive, created_at AS CreatedAt
-            FROM users
-            WHERE LOWER(username) = LOWER(@Username) AND is_active = TRUE
-            LIMIT 1;
+            FROM fn_user_get_by_username(@Username);
         """;
         return await conn.QueryFirstOrDefaultAsync<User>(sql, new { Username = username });
     }
@@ -38,9 +36,7 @@ public class UserRepository : IUserRepository
         const string sql = """
             SELECT id_user AS IdUser, username, password_hash AS PasswordHash, 
                    full_name AS FullName, is_active AS IsActive, created_at AS CreatedAt
-            FROM users
-            WHERE id_user = @Id
-            LIMIT 1;
+            FROM fn_user_get_by_id(@Id);
         """;
         return await conn.QueryFirstOrDefaultAsync<User>(sql, new { Id = id });
     }

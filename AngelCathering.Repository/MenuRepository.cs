@@ -30,21 +30,16 @@ public class MenuRepository : IMenuRepository
         using var conn = _db.CreateConnection();
         const string catSql = """
             SELECT id_category AS IdCategory, name, description, sort_order AS SortOrder, is_active AS IsActive
-            FROM menu_categories
-            WHERE is_active = TRUE
-            ORDER BY sort_order ASC, name ASC;
+            FROM fn_menu_category_list();
         """;
         var categories = (await conn.QueryAsync<MenuCategory>(catSql)).ToList();
 
         const string itemSql = """
-            SELECT i.id_item AS IdItem, i.id_category AS IdCategory, c.name AS CategoryName,
-                   i.title, i.description, i.price, i.unit_label AS UnitLabel, 
-                   i.image_url AS ImageUrl, i.is_available AS IsAvailable,
-                   i.created_at AS CreatedAt, i.updated_at AS UpdatedAt
-            FROM menu_items i
-            JOIN menu_categories c ON i.id_category = c.id_category
-            WHERE i.is_available = TRUE AND c.is_active = TRUE
-            ORDER BY i.id_category, i.title ASC;
+            SELECT id_item AS IdItem, id_category AS IdCategory, category_name AS CategoryName,
+                   title, description, price, unit_label AS UnitLabel, 
+                   image_url AS ImageUrl, is_available AS IsAvailable,
+                   created_at AS CreatedAt, updated_at AS UpdatedAt
+            FROM fn_menu_item_list_public();
         """;
         var items = (await conn.QueryAsync<MenuItem>(itemSql)).ToList();
 
@@ -59,31 +54,25 @@ public class MenuRepository : IMenuRepository
     public async Task<IEnumerable<MenuItem>> GetAllItemsAsync(bool includeInactive = false)
     {
         using var conn = _db.CreateConnection();
-        string sql = $"""
-            SELECT i.id_item AS IdItem, i.id_category AS IdCategory, c.name AS CategoryName,
-                   i.title, i.description, i.price, i.unit_label AS UnitLabel, 
-                   i.image_url AS ImageUrl, i.is_available AS IsAvailable,
-                   i.created_at AS CreatedAt, i.updated_at AS UpdatedAt
-            FROM menu_items i
-            JOIN menu_categories c ON i.id_category = c.id_category
-            {(includeInactive ? "" : "WHERE i.is_available = TRUE")}
-            ORDER BY i.id_category, i.title ASC;
+        const string sql = """
+            SELECT id_item AS IdItem, id_category AS IdCategory, category_name AS CategoryName,
+                   title, description, price, unit_label AS UnitLabel, 
+                   image_url AS ImageUrl, is_available AS IsAvailable,
+                   created_at AS CreatedAt, updated_at AS UpdatedAt
+            FROM fn_menu_item_list_all(@IncludeInactive);
         """;
-        return await conn.QueryAsync<MenuItem>(sql);
+        return await conn.QueryAsync<MenuItem>(sql, new { IncludeInactive = includeInactive });
     }
 
     public async Task<MenuItem?> GetItemByIdAsync(int id)
     {
         using var conn = _db.CreateConnection();
         const string sql = """
-            SELECT i.id_item AS IdItem, i.id_category AS IdCategory, c.name AS CategoryName,
-                   i.title, i.description, i.price, i.unit_label AS UnitLabel, 
-                   i.image_url AS ImageUrl, i.is_available AS IsAvailable,
-                   i.created_at AS CreatedAt, i.updated_at AS UpdatedAt
-            FROM menu_items i
-            JOIN menu_categories c ON i.id_category = c.id_category
-            WHERE i.id_item = @Id
-            LIMIT 1;
+            SELECT id_item AS IdItem, id_category AS IdCategory, category_name AS CategoryName,
+                   title, description, price, unit_label AS UnitLabel, 
+                   image_url AS ImageUrl, is_available AS IsAvailable,
+                   created_at AS CreatedAt, updated_at AS UpdatedAt
+            FROM fn_menu_item_get_by_id(@Id);
         """;
         return await conn.QueryFirstOrDefaultAsync<MenuItem>(sql, new { Id = id });
     }
@@ -92,9 +81,9 @@ public class MenuRepository : IMenuRepository
     {
         using var conn = _db.CreateConnection();
         const string sql = """
-            INSERT INTO menu_items (id_category, title, description, price, unit_label, image_url, is_available)
-            VALUES (@IdCategory, @Title, @Description, @Price, @UnitLabel, @ImageUrl, @IsAvailable)
-            RETURNING id_item;
+            SELECT fn_menu_item_create(
+                @IdCategory, @Title, @Description, @Price, @UnitLabel, @ImageUrl, @IsAvailable
+            );
         """;
         return await conn.ExecuteScalarAsync<int>(sql, dto);
     }
@@ -103,16 +92,9 @@ public class MenuRepository : IMenuRepository
     {
         using var conn = _db.CreateConnection();
         const string sql = """
-            UPDATE menu_items
-            SET id_category = @IdCategory,
-                title = @Title,
-                description = @Description,
-                price = @Price,
-                unit_label = @UnitLabel,
-                image_url = @ImageUrl,
-                is_available = @IsAvailable,
-                updated_at = NOW()
-            WHERE id_item = @Id;
+            CALL sp_menu_item_update(
+                @Id, @IdCategory, @Title, @Description, @Price, @UnitLabel, @ImageUrl, @IsAvailable
+            );
         """;
         var rows = await conn.ExecuteAsync(sql, new
         {
@@ -125,15 +107,15 @@ public class MenuRepository : IMenuRepository
             dto.ImageUrl,
             dto.IsAvailable
         });
-        return rows > 0;
+        return rows >= 0;
     }
 
     public async Task<bool> DeleteItemAsync(int id)
     {
         using var conn = _db.CreateConnection();
-        const string sql = "DELETE FROM menu_items WHERE id_item = @Id;";
+        const string sql = "CALL sp_menu_item_delete(@Id);";
         var rows = await conn.ExecuteAsync(sql, new { Id = id });
-        return rows > 0;
+        return rows >= 0;
     }
 
     public async Task<IEnumerable<MenuCategory>> GetCategoriesAsync()
@@ -141,9 +123,7 @@ public class MenuRepository : IMenuRepository
         using var conn = _db.CreateConnection();
         const string sql = """
             SELECT id_category AS IdCategory, name, description, sort_order AS SortOrder, is_active AS IsActive
-            FROM menu_categories
-            WHERE is_active = TRUE
-            ORDER BY sort_order ASC;
+            FROM fn_menu_category_list();
         """;
         return await conn.QueryAsync<MenuCategory>(sql);
     }

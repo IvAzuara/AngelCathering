@@ -33,9 +33,7 @@ public class OrderRepository : IOrderRepository
                    customer_email AS CustomerEmail, event_type AS EventType, event_date AS EventDate,
                    guest_count AS GuestCount, status, is_urgent AS IsUrgent, sort_priority AS SortPriority,
                    total_estimated AS TotalEstimated, notes, created_at AS CreatedAt, updated_at AS UpdatedAt
-            FROM orders
-            WHERE status IN ('PENDIENTE', 'EN_PROCESO')
-            ORDER BY is_urgent DESC, sort_priority ASC, event_date ASC;
+            FROM fn_order_list_active();
         """;
         return await conn.QueryAsync<Order>(sql);
     }
@@ -48,9 +46,7 @@ public class OrderRepository : IOrderRepository
                    customer_email AS CustomerEmail, event_type AS EventType, event_date AS EventDate,
                    guest_count AS GuestCount, status, is_urgent AS IsUrgent, sort_priority AS SortPriority,
                    total_estimated AS TotalEstimated, notes, created_at AS CreatedAt, updated_at AS UpdatedAt
-            FROM orders
-            WHERE status IN ('COMPLETADO', 'CANCELADO')
-            ORDER BY updated_at DESC, event_date DESC;
+            FROM fn_order_list_history();
         """;
         return await conn.QueryAsync<Order>(sql);
     }
@@ -63,9 +59,7 @@ public class OrderRepository : IOrderRepository
                    customer_email AS CustomerEmail, event_type AS EventType, event_date AS EventDate,
                    guest_count AS GuestCount, status, is_urgent AS IsUrgent, sort_priority AS SortPriority,
                    total_estimated AS TotalEstimated, notes, created_at AS CreatedAt, updated_at AS UpdatedAt
-            FROM orders
-            WHERE id_order = @Id
-            LIMIT 1;
+            FROM fn_order_get_by_id(@Id);
         """;
         return await conn.QueryFirstOrDefaultAsync<Order>(sql, new { Id = id });
     }
@@ -74,13 +68,11 @@ public class OrderRepository : IOrderRepository
     {
         using var conn = _db.CreateConnection();
         const string sql = """
-            INSERT INTO orders (customer_name, customer_phone, customer_email, event_type, 
-                               event_date, guest_count, status, is_urgent, sort_priority, 
-                               total_estimated, notes)
-            VALUES (@CustomerName, @CustomerPhone, @CustomerEmail, @EventType, 
-                    @EventDate, @GuestCount, @Status, @IsUrgent, @SortPriority, 
-                    @TotalEstimated, @Notes)
-            RETURNING id_order;
+            SELECT fn_order_create(
+                @CustomerName, @CustomerPhone, @CustomerEmail, @EventType,
+                @EventDate, @GuestCount, @Status, @IsUrgent, @SortPriority,
+                @TotalEstimated, @Notes
+            );
         """;
         return await conn.ExecuteScalarAsync<int>(sql, dto);
     }
@@ -89,20 +81,11 @@ public class OrderRepository : IOrderRepository
     {
         using var conn = _db.CreateConnection();
         const string sql = """
-            UPDATE orders
-            SET customer_name = @CustomerName,
-                customer_phone = @CustomerPhone,
-                customer_email = @CustomerEmail,
-                event_type = @EventType,
-                event_date = @EventDate,
-                guest_count = @GuestCount,
-                status = @Status,
-                is_urgent = @IsUrgent,
-                sort_priority = @SortPriority,
-                total_estimated = @TotalEstimated,
-                notes = @Notes,
-                updated_at = NOW()
-            WHERE id_order = @Id;
+            CALL sp_order_update(
+                @Id, @CustomerName, @CustomerPhone, @CustomerEmail, @EventType,
+                @EventDate, @GuestCount, @Status, @IsUrgent, @SortPriority,
+                @TotalEstimated, @Notes
+            );
         """;
         var rows = await conn.ExecuteAsync(sql, new
         {
@@ -119,19 +102,16 @@ public class OrderRepository : IOrderRepository
             dto.TotalEstimated,
             dto.Notes
         });
-        return rows > 0;
+        return rows >= 0;
     }
 
     public async Task<bool> UpdateStatusAsync(int id, UpdateOrderStatusDto dto)
     {
         using var conn = _db.CreateConnection();
         const string sql = """
-            UPDATE orders
-            SET status = @Status,
-                is_urgent = COALESCE(@IsUrgent, is_urgent),
-                sort_priority = COALESCE(@SortPriority, sort_priority),
-                updated_at = NOW()
-            WHERE id_order = @Id;
+            CALL sp_order_update_status(
+                @Id, @Status, @IsUrgent, @SortPriority
+            );
         """;
         var rows = await conn.ExecuteAsync(sql, new
         {
@@ -140,14 +120,14 @@ public class OrderRepository : IOrderRepository
             dto.IsUrgent,
             dto.SortPriority
         });
-        return rows > 0;
+        return rows >= 0;
     }
 
     public async Task<bool> DeleteOrderAsync(int id)
     {
         using var conn = _db.CreateConnection();
-        const string sql = "DELETE FROM orders WHERE id_order = @Id;";
+        const string sql = "CALL sp_order_delete(@Id);";
         var rows = await conn.ExecuteAsync(sql, new { Id = id });
-        return rows > 0;
+        return rows >= 0;
     }
 }

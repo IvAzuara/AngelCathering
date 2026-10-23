@@ -1,13 +1,55 @@
+# Red y mapeo a host para comunicarse con el contenedor postgresql-db publicado en :5433 del host
+x-db-host: &db-host
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+
 services:
+  # Flyway: Aplica sql/ (V###__ versionadas y R__ repetibles con funciones y SPs)
+  # sobre la base angel_catering en el PostgreSQL local (:5433)
   flyway:
+    <<: *db-host
     image: flyway/flyway:11-alpine
     container_name: angelcathering-flyway
+    command: -connectRetries=60 migrate
     environment:
-      - FLYWAY_URL=${FLYWAY_URL}
-      - FLYWAY_USER=${FLYWAY_USER}
-      - FLYWAY_PASSWORD=${FLYWAY_PASSWORD}
+      - FLYWAY_URL=jdbc:postgresql://host.docker.internal:${DB_PORT:-5433}/${DB_NAME:-angel_catering}
+      - FLYWAY_USER=${DB_USER:-postgres}
+      - FLYWAY_PASSWORD=${DB_PASSWORD:-root}
+      - FLYWAY_SCHEMAS=public
       - FLYWAY_LOCATIONS=filesystem:/flyway/sql
-      - FLYWAY_BASELINE_ON_MIGRATE=true
+      - FLYWAY_VALIDATE_MIGRATION_NAMING=true
+      - FLYWAY_PLACEHOLDER_REPLACEMENT=false
+      - JAVA_ARGS=-Duser.timezone=${DB_TIMEZONE:-America/Mexico_City}
     volumes:
       - ./sql:/flyway/sql:ro
-    command: -connectRetries=10 info
+
+  # Backend: API .NET 10
+  api:
+    <<: *db-host
+    build:
+      context: .
+      dockerfile: AngelCathering.Api/Dockerfile
+    container_name: angelcathering-api
+    restart: always
+    ports:
+      - "5130:5000"
+    env_file: .env
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - DB_HOST=host.docker.internal
+      - CONNECTION_STRING=Host=host.docker.internal;Port=${DB_PORT:-5433};Database=${DB_NAME:-angel_catering};Username=${DB_USER:-postgres};Password=${DB_PASSWORD:-root};
+    depends_on:
+      flyway:
+        condition: service_completed_successfully
+
+  # Frontend: React 19 + ShadCN UI + Vite
+  ui:
+    build:
+      context: ./AngelCathering.UI
+      dockerfile: Dockerfile
+    container_name: angelcathering-ui
+    restart: always
+    ports:
+      - "3020:80"
+    depends_on:
+      - api
