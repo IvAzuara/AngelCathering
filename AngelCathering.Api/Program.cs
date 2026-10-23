@@ -90,10 +90,43 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 // ==========================================
-// ENDPOINTS DE SALUD
+// ENDPOINTS DE SALUD & DIAGNÓSTICO
 // ==========================================
 app.MapGet("/", () => Results.Ok(new { status = "online", service = "Rose Catering API .NET 10" }));
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }));
+
+app.MapGet("/api/diagnostics/db-test", async (IDbConnectionFactory dbFactory) =>
+{
+    try
+    {
+        using var conn = dbFactory.CreateConnection();
+        conn.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT current_database(), current_user, version();";
+        using var reader = cmd.ExecuteReader();
+        if (reader.Read())
+        {
+            return Results.Ok(new
+            {
+                success = true,
+                database = reader.GetString(0),
+                user = reader.GetString(1),
+                version = reader.GetString(2)
+            });
+        }
+        return Results.Ok(new { success = true, message = "Conectado pero sin datos" });
+    }
+    catch (Exception ex)
+    {
+        return Results.Json(new
+        {
+            success = false,
+            errorType = ex.GetType().FullName,
+            message = ex.Message,
+            inner = ex.InnerException?.Message
+        }, statusCode: 500);
+    }
+});
 
 // ==========================================
 // AUTH ENDPOINTS
