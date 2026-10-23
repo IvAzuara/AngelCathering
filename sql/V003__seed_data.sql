@@ -3,12 +3,12 @@
 -- Se inicializa table_sequence con el último ID de cada tabla.
 -- ============================================================
 
--- Usuario inicial: admin / Admin123*
+-- Usuario inicial: admin / Admin123!
 INSERT INTO "user" ("id_user", "username", "password_hash", "full_name", "is_active")
 VALUES (
     1,
     'admin',
-    '$2a$11$N.vE9R3hGZ22/B3E9LpIe.8s78pP.u4xS2Y3/aP6V6E0ZkKk4nJum',
+    '$2a$11$s9HJ4n7NkY.dWpr0kdsXJOeqvTuiWjLmBD4gSI6n3UkhUStH/a.si',
     'Administrador Catering',
     TRUE
 )

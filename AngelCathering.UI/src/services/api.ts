@@ -1,4 +1,14 @@
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const envUrl = import.meta.env.VITE_API_URL;
+
+// En desarrollo local (vite dev): usa VITE_API_URL o http://localhost:5130
+// En contenedor Docker / producción estática con proxy o mismo host:
+// Si no se definió VITE_API_URL en el build, asumimos el puerto 5130 si estamos en localhost,
+// o ruta relativa '/api' si hay reverse proxy.
+export const BASE_URL = envUrl 
+  ? envUrl 
+  : (typeof window !== 'undefined' && window.location.hostname === 'localhost'
+      ? 'http://localhost:5130' 
+      : '');
 
 export interface MenuItem {
   idItem: number;
