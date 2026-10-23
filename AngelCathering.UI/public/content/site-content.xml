@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <siteConfig>
   <branding>
-    <businessName>Angel Catering</businessName>
+    <businessName>Rose Catering</businessName>
     <tagline>Experiencias gastronómicas bohemias &amp; eventos con alma</tagline>
     <shortDescription>Banquetes artesanales, estaciones rústicas, bocadillos botánicos y mesas de autor inspiradas en la naturaleza y la calidez del diseño boho chic.</shortDescription>
   </branding>
@@ -9,7 +9,7 @@
   <contact>
     <phone>+52 81 8123 4567</phone>
     <whatsapp>5218181234567</whatsapp>
-    <email>hola@angelcatering.com</email>
+    <email>hola@rosecatering.com</email>
     <city>Monterrey, Nuevo León &amp; Área Metropolitana</city>
     <hours>Lun - Sáb: 9:00 AM - 7:00 PM</hours>
   </contact>
@@ -21,7 +21,7 @@
   </publicMenuSection>
 
   <footerCopy>
-    <copyrightText>© 2026 Angel Catering Monterrey. Inspiración rústica y artesanal.</copyrightText>
+    <copyrightText>© 2026 Rose Catering Monterrey. Inspiración rústica y artesanal.</copyrightText>
     <note>Cada evento es único. Las cotizaciones se ajustan a locación, temporada floral y número de invitados.</note>
   </footerCopy>
 </siteConfig>
