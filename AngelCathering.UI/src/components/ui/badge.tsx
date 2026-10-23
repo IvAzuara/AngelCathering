@@ -3,20 +3,22 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium tracking-wide transition-colors focus:outline-none",
   {
     variants: {
       variant: {
         default:
-          "border-transparent bg-indigo-600 text-white shadow hover:bg-indigo-700",
+          "border-transparent bg-[#9E5134] text-[#FAF7F2] shadow-2xs",
         secondary:
-          "border-transparent bg-zinc-100 text-zinc-900 hover:bg-zinc-200",
+          "border-[#D8CEBF] bg-[#EFEAE1] text-[#3D2E26]",
         destructive:
-          "border-transparent bg-red-500 text-white shadow hover:bg-red-600",
-        outline: "text-zinc-950 border-zinc-200",
-        urgent: "border-red-300 bg-red-100 text-red-800 animate-pulse font-bold",
-        warning: "border-amber-300 bg-amber-100 text-amber-800 font-medium",
-        success: "border-emerald-300 bg-emerald-100 text-emerald-800 font-medium",
+          "border-transparent bg-red-700 text-white shadow-2xs",
+        outline: "text-[#3D2E26] border-[#D8CEBF]",
+        urgent: "border-red-300 bg-red-100/90 text-red-900 font-bold animate-pulse shadow-xs",
+        warning: "border-amber-300 bg-amber-100 text-amber-900 font-semibold",
+        success: "border-[#AEC3A7] bg-[#E5EDE2] text-[#40543B] font-semibold",
+        sage: "border-[#CAD6C6] bg-[#EDF3EB] text-[#4D6049] font-medium",
+        clay: "border-[#E8C2B3] bg-[#FAECE7] text-[#8C3E21] font-medium",
       },
     },
     defaultVariants: {

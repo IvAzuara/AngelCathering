@@ -1,27 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <siteConfig>
   <branding>
-    <businessName>Angel Catering &amp; Eventos</businessName>
-    <tagline>Experiencias gastronómicas inolvidables para tus momentos especiales</tagline>
-    <shortDescription>Servicio profesional de banquetes, canapés gourmet, barras de bebidas y mesas de postres con la más alta calidad y atención personalizada.</shortDescription>
+    <businessName>Angel Catering</businessName>
+    <tagline>Experiencias gastronómicas bohemias &amp; eventos con alma</tagline>
+    <shortDescription>Banquetes artesanales, estaciones rústicas, bocadillos botánicos y mesas de autor inspiradas en la naturaleza y la calidez del diseño boho chic.</shortDescription>
   </branding>
   
   <contact>
-    <phone>+52 55 1234 5678</phone>
-    <whatsapp>5215512345678</whatsapp>
-    <email>contacto@angelcatering.com</email>
-    <city>Ciudad de México &amp; Área Metropolitana</city>
+    <phone>+52 81 8123 4567</phone>
+    <whatsapp>5218181234567</whatsapp>
+    <email>hola@angelcatering.com</email>
+    <city>Monterrey, Nuevo León &amp; Área Metropolitana</city>
     <hours>Lun - Sáb: 9:00 AM - 7:00 PM</hours>
   </contact>
 
   <publicMenuSection>
-    <title>Nuestro Menú Exclusivo</title>
-    <subtitle>Elaborado artesanalmente por chefs profesionales con ingredientes frescos y seleccionados.</subtitle>
-    <ctaText>Cotiza tu fecha con nosotros</ctaText>
+    <title>Nuestra Carta Botánica &amp; Artesanal</title>
+    <subtitle>Sabores orgánicos, texturas rústicas y presentaciones curadas para bodas, celebraciones íntimas y momentos memorables.</subtitle>
+    <ctaText>Reserva tu fecha especial</ctaText>
   </publicMenuSection>
 
   <footerCopy>
-    <copyrightText>© 2026 Angel Catering. Todos los derechos reservados.</copyrightText>
-    <note>Precios sujetos a cotización final según número de comensales y locación.</note>
+    <copyrightText>© 2026 Angel Catering Monterrey. Inspiración rústica y artesanal.</copyrightText>
+    <note>Cada evento es único. Las cotizaciones se ajustan a locación, temporada floral y número de invitados.</note>
   </footerCopy>
 </siteConfig>
