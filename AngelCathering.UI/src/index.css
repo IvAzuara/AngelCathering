@@ -1,50 +1,56 @@
 @import "tailwindcss";
 
-@layer base {
-  :root {
-    --font-serif: 'Cormorant Garamond', Georgia, serif;
-    --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+@theme {
+  /* Fuentes de diseño */
+  --font-serif: 'Cormorant Garamond', Georgia, serif;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
-    /* Paleta BoHo Chic: Terracota, Arena, Salvia y Lino */
-    --background: 40 33% 98%;      /* Crema suave / Lino #FAF7F2 */
-    --foreground: 25 25% 20%;      /* Tierra tostada #3D2E26 */
-    
-    --card: 40 25% 99%;            /* Blanco cálido */
-    --card-foreground: 25 25% 20%;
-    
-    --popover: 40 25% 99%;
-    --popover-foreground: 25 25% 20%;
-    
-    --primary: 18 52% 44%;         /* Terracota cálido #A85333 */
-    --primary-foreground: 40 33% 98%;
-    
-    --secondary: 40 25% 92%;       /* Arena claro #EFEAE1 */
-    --secondary-foreground: 25 25% 20%;
-    
-    --muted: 40 20% 93%;
-    --muted-foreground: 28 15% 48%; /* Arcilla neutra */
-    
-    --accent: 78 20% 88%;          /* Verde Salvia suave #D9DFD2 */
-    --accent-foreground: 120 15% 25%;
-    
-    --destructive: 0 65% 55%;
-    --destructive-foreground: 0 0% 100%;
-    
-    --border: 35 22% 88%;          /* Borde sutil arena */
-    --input: 35 22% 88%;
-    --ring: 18 52% 44%;
-    --radius: 0.75rem;
-  }
+  /* Paleta semántica Tailwind v4 BoHo Chic */
+  --color-boho-bg: #FAF7F2;
+  --color-boho-card: #FDFBF7;
+  --color-boho-surface: #EFEAE1;
+  --color-boho-surface-hover: #E5DDCF;
+  --color-boho-border: #D8CEBF;
+  --color-boho-border-subtle: #E8DFC8;
+  
+  --color-boho-text: #3D2E26;
+  --color-boho-text-title: #2D211A;
+  --color-boho-text-muted: #6B5A4E;
+  --color-boho-text-light: #8C7A6B;
+
+  --color-terracotta-50: #FCF4F0;
+  --color-terracotta-100: #FAECE7;
+  --color-terracotta-200: #F3D3C7;
+  --color-terracotta-500: #B85D3B;
+  --color-terracotta-600: #9E5134;
+  --color-terracotta-700: #854229;
+  --color-terracotta-800: #6D341F;
+
+  --color-sage-50: #F5F7F3;
+  --color-sage-100: #EDF3EB;
+  --color-sage-200: #D9DFD2;
+  --color-sage-500: #687B62;
+  --color-sage-600: #566751;
+  --color-sage-700: #40543B;
+  --color-sage-800: #33432F;
 }
 
-body {
-  margin: 0;
+/* Clases utilitarias nativas */
+@utility font-serif-boho {
+  font-family: var(--font-serif);
+}
+
+@utility font-sans-boho {
   font-family: var(--font-sans);
-  background-color: #FAF7F2;
-  color: #382C26;
-  -webkit-font-smoothing: antialiased;
 }
 
-.font-serif-boho {
-  font-family: 'Cormorant Garamond', Georgia, serif;
+/* Reglas base */
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-sans);
+  background-color: var(--color-boho-bg);
+  color: var(--color-boho-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
