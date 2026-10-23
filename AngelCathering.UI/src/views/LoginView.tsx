@@ -21,8 +21,7 @@ export const LoginView: React.FC<{
 
     try {
       const data = await api.login(username, password);
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify({ username: data.username, fullName: data.fullName }));
+      sessionStorage.setItem("token", data.token);
       onLoginSuccess({ username: data.username, fullName: data.fullName });
     } catch {
       setError("Usuario o contraseña incorrectos. Revisa e intenta de nuevo.");

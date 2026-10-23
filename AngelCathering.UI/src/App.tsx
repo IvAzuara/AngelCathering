@@ -6,6 +6,7 @@ import { OrdersKanbanView } from "@/views/OrdersKanbanView";
 import { MenuAdminView } from "@/views/MenuAdminView";
 import { QuotationView } from "@/views/QuotationView";
 import { Button } from "@/components/ui/button";
+import { api } from "@/services/api";
 import { 
   ClipboardList, UtensilsCrossed, Calculator, 
   LogOut, Globe, Flower2, User as UserIcon 
@@ -19,22 +20,32 @@ function MainLayout() {
   const [currentView, setCurrentView] = useState<AppView>("public-menu");
   const [adminTab, setAdminTab] = useState<AdminTab>("orders");
   const [user, setUser] = useState<{ username: string; fullName: string } | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
 
+  // Validación estricta del token con el backend al iniciar
   useEffect(() => {
-    const savedUser = localStorage.getItem("user");
-    const token = localStorage.getItem("token");
-    if (savedUser && token) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch {
-        localStorage.clear();
-      }
+    const token = sessionStorage.getItem("token");
+    if (!token) {
+      setUser(null);
+      return;
     }
+
+    setIsValidating(true);
+    api.getCurrentUser()
+      .then((userData) => {
+        setUser({ username: userData.username, fullName: userData.fullName });
+      })
+      .catch(() => {
+        // Token inválido, manipulado o expirado: expulsar inmediatamente
+        sessionStorage.removeItem("token");
+        setUser(null);
+        setCurrentView("public-menu");
+      })
+      .finally(() => setIsValidating(false));
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    sessionStorage.removeItem("token");
     setUser(null);
     setCurrentView("public-menu");
   };
@@ -65,7 +76,32 @@ function MainLayout() {
     );
   }
 
-  // Vista de Administración (Limpia, sobria pero con toques orgánicos cálidos y paleta BoHo)
+  // Si no hay usuario autenticado o está validando, denegar render de la vista admin
+  if (isValidating) {
+    return (
+      <div className="min-h-screen bg-boho-bg flex items-center justify-center text-boho-text-muted">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-terracotta-600 border-t-transparent" />
+          <p className="text-xs uppercase tracking-wider font-semibold">Validando credenciales criptográficas...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    // Si intenta acceder a vista admin sin usuario verificado por el backend
+    return (
+      <LoginView
+        onLoginSuccess={(loggedInUser) => {
+          setUser(loggedInUser);
+          setCurrentView("admin");
+        }}
+        onBackToMenu={() => setCurrentView("public-menu")}
+      />
+    );
+  }
+
+  // Vista de Administración Verificada
   return (
     <div className="min-h-screen bg-boho-bg text-boho-text flex flex-col font-sans-boho">
       {/* Barra superior de Administración */}
@@ -99,7 +135,7 @@ function MainLayout() {
             <div className="h-4 w-px bg-boho-border-subtle mx-1 hidden sm:block" />
             <div className="hidden sm:flex items-center gap-2 text-xs text-boho-text-muted mr-2">
               <UserIcon className="h-3.5 w-3.5 text-boho-text-light" />
-              <span className="font-medium">{user?.fullName || user?.username}</span>
+              <span className="font-medium">{user.fullName}</span>
             </div>
             <Button 
               variant="ghost" 

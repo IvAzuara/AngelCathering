@@ -49,7 +49,7 @@ export interface Order {
 }
 
 function getAuthHeaders() {
-  const token = localStorage.getItem('token');
+  const token = sessionStorage.getItem('token');
   return {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -72,6 +72,14 @@ export const api = {
       body: JSON.stringify({ username, password }),
     });
     if (!res.ok) throw new Error('Credenciales inválidas');
+    return res.json();
+  },
+
+  getCurrentUser: async () => {
+    const res = await fetch(`${BASE_URL}/api/auth/me`, {
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) throw new Error('Sesión inválida o expirada');
     return res.json();
   },
 
