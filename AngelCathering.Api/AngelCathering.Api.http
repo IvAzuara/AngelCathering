@@ -1,0 +1,6 @@
+@AngelCathering.Api_HostAddress = http://localhost:5132
+
+GET {{AngelCathering.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -1,0 +1,13 @@
+services:
+  flyway:
+    image: flyway/flyway:11-alpine
+    container_name: angelcathering-flyway
+    environment:
+      - FLYWAY_URL=${FLYWAY_URL}
+      - FLYWAY_USER=${FLYWAY_USER}
+      - FLYWAY_PASSWORD=${FLYWAY_PASSWORD}
+      - FLYWAY_LOCATIONS=filesystem:/flyway/sql
+      - FLYWAY_BASELINE_ON_MIGRATE=true
+    volumes:
+      - ./sql:/flyway/sql:ro
+    command: -connectRetries=10 info

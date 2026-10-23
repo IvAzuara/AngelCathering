@@ -1,0 +1,39 @@
+# ─── Build output ───────────────────────────────────────────────────────────
+bin/
+obj/
+
+# ─── Node / Frontend ─────────────────────────────────────────────────────────
+node_modules/
+MMCargas.UI/dist/
+MMCargas.UI/dist-ssr/
+
+# ─── Secrets & environment config ────────────────────────────────────────────
+# DB and JWT settings come ONLY from environment variables (.env, copy .env.example).
+MMCargas.UI/.env
+MMCargas.UI/.env.local
+MMCargas.UI/.env.*.local
+.env
+
+# ─── IDE / editor artifacts ──────────────────────────────────────────────────
+*.user
+.vs/
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+
+# ─── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+logs/
+pnpm-debug.log*
+*.suo
+*.sw?
+
+# ─── Agent session state ──────────────────────────────────────────────────────
+.agents/state/session/*
+!.agents/state/session/.gitkeep
+
+# ─── Agent workspace and AI instructions (local only) ─────────────────────
+.agents/
+CLAUDE.md
+GEMINI.md

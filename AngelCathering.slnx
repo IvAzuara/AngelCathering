@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="AngelCathering.Api/AngelCathering.Api.csproj" />
+  <Project Path="AngelCathering.Data/AngelCathering.Data.csproj" />
+  <Project Path="AngelCathering.Models/AngelCathering.Models.csproj" />
+  <Project Path="AngelCathering.Repository/AngelCathering.Repository.csproj" />
+</Solution>
