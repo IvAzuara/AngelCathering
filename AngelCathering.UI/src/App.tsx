@@ -22,8 +22,11 @@ function MainLayout() {
   const [user, setUser] = useState<{ username: string; fullName: string } | null>(null);
   const [isValidating, setIsValidating] = useState(false);
 
-  // Validación estricta del token con el backend al iniciar
+  // Limpiar cualquier residuo previo de localStorage legado y validar sesión en sessionStorage
   useEffect(() => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+
     const token = sessionStorage.getItem("token");
     if (!token) {
       setUser(null);
@@ -36,7 +39,7 @@ function MainLayout() {
         setUser({ username: userData.username, fullName: userData.fullName });
       })
       .catch(() => {
-        // Token inválido, manipulado o expirado: expulsar inmediatamente
+        // Token inválido o manipulado
         sessionStorage.removeItem("token");
         setUser(null);
         setCurrentView("public-menu");
