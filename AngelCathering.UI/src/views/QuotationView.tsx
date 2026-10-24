@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { 
   Calculator, 
   FileDown, 
@@ -8,11 +8,15 @@ import {
   FileText,
   Sparkles,
   Eye,
-  RefreshCw
+  RefreshCw,
+  ShoppingBag,
+  CheckCircle,
+  RotateCcw
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { api } from "@/services/api";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
@@ -24,53 +28,102 @@ interface QuoteItem {
   unitPrice: number;
 }
 
-export const QuotationView: React.FC = () => {
+// Plantillas / Presets predefinidos para agilizar la cotización
+interface QuotePreset {
+  name: string;
+  serviceType: string;
+  includedMenu: string;
+  pricePerPerson: number;
+  foodDetails: string;
+  complementDetails: string;
+  includesDetails: string;
+  defaultDescription: string;
+}
+
+const PRESETS: QuotePreset[] = [
+  {
+    name: "🍕 Pizza Bar Artesanal",
+    serviceType: "Pizza Bar",
+    includedMenu: "Pizza artesanal + complementos",
+    pricePerPerson: 200,
+    foodDetails: "Variedad de pizzas: pepperoni, hawaiana, jamón, champiñones, 2 quesos\n\nPasta (a elegir)\n\nEnsalada italiana",
+    complementDetails: "Aderezos gourmet\n\nQueso parmesano\n\nChile quebrado",
+    includesDetails: "1 hora de servicio continuo\nPersonal de cocina y atención\nDesechables biodegradables (platos y cubiertos)\nDecoración temática rústica / boho",
+    defaultDescription: "Pizza bar artesanal"
+  },
+  {
+    name: "🌮 Taquiza Gourmet / Cazuelas",
+    serviceType: "Taquiza Tradicional & Gourmet",
+    includedMenu: "5 guisados a elegir + guarniciones",
+    pricePerPerson: 185,
+    foodDetails: "Cazuelas calientes (chicharrón en salsa verde, deshebrada, tinga de pollo, picadillo, rajas con crema)\n\nArroz mexicano\n\nFrijoles refritos con veneno",
+    complementDetails: "Salsas de la casa (verde cruda, roja tatemada, habanero)\n\nCebollita con cilantro y limones\n\nTortillas de maíz y harina recién hechas",
+    includesDetails: "2 horas de servicio\nBufeteras calientes y cazuelas de barro rústicas\nPersonal uniformado de servicio\nDesechables y servilletas de tela",
+    defaultDescription: "Taquiza buffet de cazuelas"
+  },
+  {
+    name: "🥪 Box Lunch & Coffee Break",
+    serviceType: "Coffee Break Ejecutivo / Social",
+    includedMenu: "Bocadillos individuales + estación de café",
+    pricePerPerson: 140,
+    foodDetails: "Croissants de pechuga de pavo y queso gouda\n\nMinitartaletas de frutas de temporada\n\nGalletas artesanales de avena y chispas",
+    complementDetails: "Café de grano recién tostado (americano y capuchino)\n\nVariedad de tés e infusiones naturales\n\nJugos naturales de naranja y frutos rojos",
+    includesDetails: "Estación de café autoservicio por 3 horas\nVasos, agitadores y servilletas eco-friendly\nMontaje floral con elementos botánicos",
+    defaultDescription: "Servicio Coffee Break & Box Lunch"
+  },
+  {
+    name: "🥩 Menú Formal de 3 Tiempos",
+    serviceType: "Banquete 3 Tiempos Formal",
+    includedMenu: "Entrada + Plato fuerte + Postre",
+    pricePerPerson: 380,
+    foodDetails: "1er Tiempo: Crema de cilantro con nuez o Ensalada de pera y queso de cabra\n\n2do Tiempo: Medallón de res al vino tinto con puré rústico y espárragos\n\n3er Tiempo: Cheesecake de frutos rojos o Mostachón artesanal",
+    complementDetails: "Pan artesanal de masa madre con mantequilla de finas hierbas\n\nServicio de aderezos de autor",
+    includesDetails: "3 horas de servicio completo a la mesa\nMeseros y chef en sitio\nLoza de cerámica, cristalería y cubertería de lujo\nMontaje de mesas con mantelería boho",
+    defaultDescription: "Banquete formal de 3 tiempos"
+  }
+];
+
+interface QuotationViewProps {
+  onOrderCreated?: () => void;
+}
+
+export const QuotationView: React.FC<QuotationViewProps> = ({ onOrderCreated }) => {
+  // Verificar si hay usuario logueado en sessionStorage
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
+
   // Datos Generales de la Cotización
-  const [responsible, setResponsible] = useState("Linda Camacho");
-  const [emissionDate, setEmissionDate] = useState("Octubre 2026");
+  const [responsible, setResponsible] = useState("");
+  const [emissionDate, setEmissionDate] = useState("");
   
   // Datos del Cliente
-  const [clientName, setClientName] = useState("Pao");
-  const [clientPhone, setClientPhone] = useState("8117603902");
-  const [eventType, setEventType] = useState("Social");
-  const [eventDate, setEventDate] = useState("23 Octubre 2026");
-  const [eventTime, setEventTime] = useState("08:00 pm");
-  const [eventLocation, setEventLocation] = useState("Calle sain alto #236 Col. Mitras centro, Monterrey NL");
-  const [peopleCount, setPeopleCount] = useState<number>(30);
+  const [clientName, setClientName] = useState("");
+  const [clientPhone, setClientPhone] = useState("");
+  const [eventType, setEventType] = useState("");
+  const [eventDate, setEventDate] = useState("");
+  const [eventTime, setEventTime] = useState("");
+  const [eventLocation, setEventLocation] = useState("");
+  const [peopleCount, setPeopleCount] = useState<number | "">("");
 
   // Detalle del Servicio (Página 1)
-  const [serviceType, setServiceType] = useState("Pizza Bar");
-  const [includedMenu, setIncludedMenu] = useState("Pizza + complementos");
-  const [pricePerPerson, setPricePerPerson] = useState<number>(200);
+  const [serviceType, setServiceType] = useState("");
+  const [includedMenu, setIncludedMenu] = useState("");
+  const [pricePerPerson, setPricePerPerson] = useState<number | "">("");
 
   // Lista de Comida y Complementos
-  const [foodDetails, setFoodDetails] = useState<string>(
-    "Variedad de pizzas: pepperoni, hawaiana, jamón, champiñones, 2 quesos\n\nPasta (a elegir)\n\nEnsalada italiana"
-  );
-  const [complementDetails, setComplementDetails] = useState<string>(
-    "Aderezos\n\nQueso parmesano\n\nChile quebrado"
-  );
+  const [foodDetails, setFoodDetails] = useState("");
+  const [complementDetails, setComplementDetails] = useState("");
 
   // Incluye
-  const [includesDetails, setIncludesDetails] = useState<string>(
-    "1 hora de servicio\nPersonal atendiendo\nDesechables (platos, cubiertos)\nDecoración"
-  );
+  const [includesDetails, setIncludesDetails] = useState("");
 
   // Tabla Genérica por Día (Página 2)
   const [tableItems, setTableItems] = useState<QuoteItem[]>([
     {
       id: "item-1",
-      description: "Pizza bar",
-      serviceDays: 1,
-      peopleCount: 30,
-      unitPrice: 200
-    },
-    {
-      id: "item-2",
-      description: "Flete/ traslado",
+      description: "",
       serviceDays: 1,
       peopleCount: 0,
-      unitPrice: 200
+      unitPrice: 0
     }
   ]);
 
@@ -83,19 +136,32 @@ export const QuotationView: React.FC = () => {
     "- En caso de requerir factura, se adicionarán los impuestos correspondientes (IVA)"
   );
 
-  // Estado de exportación
+  // Estados de carga y feedback
   const [isExporting, setIsExporting] = useState(false);
+  const [isSavingOrder, setIsSavingOrder] = useState(false);
+  const [orderSavedSuccess, setOrderSavedSuccess] = useState(false);
   const [activeTab, setActiveTab] = useState<"editor" | "preview">("editor");
 
   const pdfPage1Ref = useRef<HTMLDivElement>(null);
   const pdfPage2Ref = useRef<HTMLDivElement>(null);
 
-  // Cálculos
+  useEffect(() => {
+    const token = sessionStorage.getItem("token");
+    setIsAdmin(!!token);
+
+    // Inicializar responsable y fecha de emisión actual si están vacíos
+    const today = new Date();
+    const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+    setEmissionDate(`${months[today.getMonth()]} ${today.getFullYear()}`);
+    setResponsible("Linda Camacho");
+  }, []);
+
+  // Cálculos económicos
   const calculateItemSubtotal = (item: QuoteItem) => {
     if (item.peopleCount > 0) {
-      return item.serviceDays * item.peopleCount * item.unitPrice;
+      return (item.serviceDays || 1) * item.peopleCount * (item.unitPrice || 0);
     }
-    return item.serviceDays * item.unitPrice;
+    return (item.serviceDays || 1) * (item.unitPrice || 0);
   };
 
   const subtotal = tableItems.reduce((acc, item) => acc + calculateItemSubtotal(item), 0);
@@ -103,23 +169,27 @@ export const QuotationView: React.FC = () => {
   const total = subtotal + ivaAmount;
 
   // Manejo de ítems de la tabla
-  const handleAddItem = () => {
+  const handleAddItem = (desc = "", days = 1, people = 0, price = 0) => {
     const newItem: QuoteItem = {
-      id: `item-${Date.now()}`,
-      description: "Servicio adicional",
-      serviceDays: 1,
-      peopleCount: 0,
-      unitPrice: 0
+      id: `item-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
+      description: desc,
+      serviceDays: days,
+      peopleCount: people,
+      unitPrice: price
     };
-    setTableItems([...tableItems, newItem]);
+    setTableItems(prev => [...prev, newItem]);
   };
 
   const handleRemoveItem = (id: string) => {
-    setTableItems(tableItems.filter(item => item.id !== id));
+    if (tableItems.length <= 1) {
+      setTableItems([{ id: `item-${Date.now()}`, description: "", serviceDays: 1, peopleCount: 0, unitPrice: 0 }]);
+      return;
+    }
+    setTableItems(prev => prev.filter(item => item.id !== id));
   };
 
   const handleUpdateItem = (id: string, field: keyof QuoteItem, value: any) => {
-    setTableItems(tableItems.map(item => {
+    setTableItems(prev => prev.map(item => {
       if (item.id === id) {
         return { ...item, [field]: value };
       }
@@ -130,12 +200,116 @@ export const QuotationView: React.FC = () => {
   // Sincronizar personas cuando se cambia el dato principal
   const handleMainPeopleChange = (newCount: number) => {
     setPeopleCount(newCount);
-    setTableItems(tableItems.map(item => {
-      if (item.peopleCount > 0) {
+    setTableItems(prev => prev.map((item, index) => {
+      // El primer ítem suele ser el paquete principal por comensal
+      if (index === 0 || item.peopleCount > 0) {
         return { ...item, peopleCount: newCount };
       }
       return item;
     }));
+  };
+
+  // Aplicar plantilla / preset predefinido
+  const handleApplyPreset = (preset: QuotePreset) => {
+    setServiceType(preset.serviceType);
+    setIncludedMenu(preset.includedMenu);
+    setPricePerPerson(preset.pricePerPerson);
+    setFoodDetails(preset.foodDetails);
+    setComplementDetails(preset.complementDetails);
+    setIncludesDetails(preset.includesDetails);
+
+    // Ajustar primera fila de la tabla económica
+    const currentGuests = typeof peopleCount === "number" ? peopleCount : 30;
+    setTableItems([
+      {
+        id: `item-1`,
+        description: preset.defaultDescription,
+        serviceDays: 1,
+        peopleCount: currentGuests,
+        unitPrice: preset.pricePerPerson
+      },
+      {
+        id: `item-2`,
+        description: "Flete / traslado en zona metropolitana",
+        serviceDays: 1,
+        peopleCount: 0,
+        unitPrice: 200
+      }
+    ]);
+  };
+
+  // Limpiar formulario a valores vacíos (conservando solo la fecha actual)
+  const handleResetForm = () => {
+    if (!confirm("¿Deseas vaciar todos los campos del formulario?")) return;
+    setClientName("");
+    setClientPhone("");
+    setEventType("");
+    setEventDate("");
+    setEventTime("");
+    setEventLocation("");
+    setPeopleCount("");
+    setServiceType("");
+    setIncludedMenu("");
+    setPricePerPerson("");
+    setFoodDetails("");
+    setComplementDetails("");
+    setIncludesDetails("");
+    setTableItems([{ id: `item-1`, description: "", serviceDays: 1, peopleCount: 0, unitPrice: 0 }]);
+  };
+
+  // Guardar cotización como Pedido en el Sistema (SOLO ADMIN)
+  const handleSaveAsOrder = async () => {
+    if (!clientName.trim()) {
+      alert("Por favor ingresa al menos el Nombre del Cliente para guardar el pedido.");
+      return;
+    }
+
+    setIsSavingOrder(true);
+    setOrderSavedSuccess(false);
+
+    try {
+      // Formatear notas con el desglose del servicio cotizado
+      const notesDetails = [
+        `Servicio: ${serviceType || "No especificado"} (${includedMenu || ""})`,
+        `Horario: ${eventTime || "Por confirmar"}`,
+        `Ubicación: ${eventLocation || "Por confirmar"}`,
+        `Detalle menú: ${foodDetails ? foodDetails.substring(0, 150) + "..." : "N/A"}`,
+        `Condiciones: ${includeIva ? "Incluye IVA" : "Subtotal neto"}`,
+      ].filter(Boolean).join(" | ");
+
+      // Determinar fecha válida ISO o fallback a fecha actual
+      let validEventDate = new Date().toISOString();
+      const parsedDate = new Date(eventDate);
+      if (!isNaN(parsedDate.getTime())) {
+        validEventDate = parsedDate.toISOString();
+      }
+
+      const newOrder = {
+        customerName: clientName.trim(),
+        customerPhone: clientPhone.trim() || undefined,
+        eventType: eventType.trim() || "Catering Evento",
+        eventDate: validEventDate,
+        guestCount: typeof peopleCount === "number" && peopleCount > 0 ? peopleCount : 1,
+        status: "PENDIENTE" as const,
+        isUrgent: false,
+        sortPriority: 0,
+        totalEstimated: total > 0 ? total : 0,
+        notes: notesDetails
+      };
+
+      await api.saveOrder(newOrder);
+      setOrderSavedSuccess(true);
+      setTimeout(() => setOrderSavedSuccess(false), 4000);
+
+      if (onOrderCreated) {
+        onOrderCreated();
+      }
+    } catch (err: any) {
+      console.error("Error al registrar pedido desde cotización:", err);
+      alert(`No se pudo crear el pedido: ${err.message || "Error desconocido"}`);
+    } finally {
+      setIsSavingOrder(false);
+    }
   };
 
   // Generar PDF
@@ -169,7 +343,7 @@ export const QuotationView: React.FC = () => {
       pdf.addImage(imgData2, "JPEG", 0, 0, 612, 792);
 
       // Descargar archivo
-      const sanitizedName = clientName.replace(/[^a-zA-Z0-9]/g, "_") || "Cliente";
+      const sanitizedName = clientName.trim().replace(/[^a-zA-Z0-9]/g, "_") || "Cliente";
       pdf.save(`Cotizacion_RoseCatering_${sanitizedName}.pdf`);
     } catch (error) {
       console.error("Error al generar PDF:", error);
@@ -185,15 +359,28 @@ export const QuotationView: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-boho-sand">
         <div>
           <div className="inline-flex items-center gap-2 bg-boho-terracotta/10 text-boho-terracotta text-xs font-semibold px-3 py-1 rounded-full mb-2">
-            <Sparkles className="h-3.5 w-3.5" /> Cotizador Formal de Eventos
+            <Sparkles className="h-3.5 w-3.5" /> Cotizador Oficial de Eventos
           </div>
           <h1 className="font-serif text-3xl font-bold text-boho-stone">Generador de Cotizaciones</h1>
           <p className="text-sm text-boho-muted">
-            Diseñado con la estructura oficial de Rosé Catering Monterrey.
+            Completa la información o selecciona una plantilla predefinida para emitir la cotización formal.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Botón vaciar */}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleResetForm}
+            className="text-xs text-zinc-600 border-zinc-300 hover:text-red-700 hover:bg-red-50"
+            title="Limpiar formulario"
+          >
+            <RotateCcw className="h-3.5 w-3.5 mr-1" /> Limpiar
+          </Button>
+
+          {/* Selector de pestañas Formulario / Vista Previa */}
           <div className="bg-boho-warm p-1 rounded-lg border border-boho-sand flex gap-1">
             <Button
               type="button"
@@ -215,6 +402,35 @@ export const QuotationView: React.FC = () => {
             </Button>
           </div>
 
+          {/* Botón Guardar como Pedido (SOLO ADMIN) */}
+          {isAdmin && (
+            <Button
+              type="button"
+              onClick={handleSaveAsOrder}
+              disabled={isSavingOrder}
+              className={`text-xs font-medium shadow-sm transition-all ${
+                orderSavedSuccess 
+                  ? "bg-emerald-600 text-white hover:bg-emerald-700" 
+                  : "bg-boho-sage text-white hover:bg-sage-700"
+              }`}
+            >
+              {isSavingOrder ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-1.5 animate-spin" /> Guardando pedido...
+                </>
+              ) : orderSavedSuccess ? (
+                <>
+                  <CheckCircle className="h-4 w-4 mr-1.5" /> ¡Pedido Guardado!
+                </>
+              ) : (
+                <>
+                  <ShoppingBag className="h-4 w-4 mr-1.5" /> Guardar como Pedido
+                </>
+              )}
+            </Button>
+          )}
+
+          {/* Botón Descargar PDF */}
           <Button
             type="button"
             onClick={handleExportPDF}
@@ -236,6 +452,26 @@ export const QuotationView: React.FC = () => {
         </div>
       </div>
 
+      {/* BARRA DE PRESETS / PLANTILLAS RÁPIDAS */}
+      <div className="mt-4 bg-boho-surface/80 p-3 rounded-lg border border-boho-sand flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-boho-terracotta shrink-0" />
+          <span className="text-xs font-semibold text-boho-stone">Plantillas Rápidas:</span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {PRESETS.map((preset, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => handleApplyPreset(preset)}
+              className="text-xs px-2.5 py-1 bg-white hover:bg-boho-warm border border-boho-sand rounded-md text-boho-stone transition-all shadow-2xs hover:border-boho-terracotta cursor-pointer"
+            >
+              {preset.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Selector de modo */}
       <div className="mt-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
         
@@ -250,11 +486,11 @@ export const QuotationView: React.FC = () => {
             </CardHeader>
             <CardContent className="pt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-semibold text-zinc-700">Nombre del Cliente</label>
+                <label className="text-xs font-semibold text-zinc-700">Nombre del Cliente *</label>
                 <Input 
                   value={clientName} 
                   onChange={(e) => setClientName(e.target.value)} 
-                  placeholder="Ej. Pao"
+                  placeholder="Ej. Pao González"
                   className="mt-1"
                 />
               </div>
@@ -272,7 +508,7 @@ export const QuotationView: React.FC = () => {
                 <Input 
                   value={eventType} 
                   onChange={(e) => setEventType(e.target.value)} 
-                  placeholder="Ej. Social / Boda / Corporativo"
+                  placeholder="Ej. Social / Cumpleaños / Boda"
                   className="mt-1"
                 />
               </div>
@@ -298,8 +534,12 @@ export const QuotationView: React.FC = () => {
                 <label className="text-xs font-semibold text-zinc-700">Número de Personas</label>
                 <Input 
                   type="number" 
-                  value={peopleCount} 
-                  onChange={(e) => handleMainPeopleChange(parseInt(e.target.value) || 0)} 
+                  value={peopleCount === "" ? "" : peopleCount} 
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    handleMainPeopleChange(val === "" ? 0 : parseInt(val));
+                  }} 
+                  placeholder="Ej. 30"
                   className="mt-1"
                 />
               </div>
@@ -317,6 +557,7 @@ export const QuotationView: React.FC = () => {
                 <Input 
                   value={responsible} 
                   onChange={(e) => setResponsible(e.target.value)} 
+                  placeholder="Ej. Linda Camacho"
                   className="mt-1"
                 />
               </div>
@@ -325,6 +566,7 @@ export const QuotationView: React.FC = () => {
                 <Input 
                   value={emissionDate} 
                   onChange={(e) => setEmissionDate(e.target.value)} 
+                  placeholder="Ej. Octubre 2026"
                   className="mt-1"
                 />
               </div>
@@ -362,8 +604,12 @@ export const QuotationView: React.FC = () => {
                   <label className="text-xs font-semibold text-zinc-700">Precio x Persona ($)</label>
                   <Input 
                     type="number"
-                    value={pricePerPerson} 
-                    onChange={(e) => setPricePerPerson(parseFloat(e.target.value) || 0)} 
+                    value={pricePerPerson === "" ? "" : pricePerPerson} 
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setPricePerPerson(val === "" ? "" : parseFloat(val));
+                    }} 
+                    placeholder="Ej. 200.00"
                     className="mt-1"
                   />
                 </div>
@@ -376,6 +622,7 @@ export const QuotationView: React.FC = () => {
                     rows={4}
                     value={foodDetails}
                     onChange={(e) => setFoodDetails(e.target.value)}
+                    placeholder="Ej. Variedad de pizzas: pepperoni, hawaiana, jamón, champiñones..."
                     className="w-full text-xs rounded-md border border-zinc-200 p-2 mt-1 focus:outline-none focus:ring-1 focus:ring-boho-terracotta"
                   />
                 </div>
@@ -385,6 +632,7 @@ export const QuotationView: React.FC = () => {
                     rows={4}
                     value={complementDetails}
                     onChange={(e) => setComplementDetails(e.target.value)}
+                    placeholder="Ej. Aderezos de la casa, queso parmesano, chile quebrado..."
                     className="w-full text-xs rounded-md border border-zinc-200 p-2 mt-1 focus:outline-none focus:ring-1 focus:ring-boho-terracotta"
                   />
                 </div>
@@ -396,6 +644,7 @@ export const QuotationView: React.FC = () => {
                   rows={3}
                   value={includesDetails}
                   onChange={(e) => setIncludesDetails(e.target.value)}
+                  placeholder="Ej. 1 hora de servicio, Personal atendiendo, Desechables (platos, cubiertos), Decoración temática..."
                   className="w-full text-xs rounded-md border border-zinc-200 p-2 mt-1 focus:outline-none focus:ring-1 focus:ring-boho-terracotta"
                 />
               </div>
@@ -405,18 +654,31 @@ export const QuotationView: React.FC = () => {
           {/* Card 3: Tabla Económica / Desglose (Hoja 2) */}
           <Card className="border border-boho-sand bg-white shadow-xs">
             <CardHeader className="pb-3 border-b border-boho-sand/40 flex flex-row items-center justify-between">
-              <CardTitle className="text-base font-serif font-bold text-boho-stone flex items-center gap-2">
-                <Calculator className="h-4 w-4 text-boho-terracotta" /> Desglose Económico (Hoja 2)
-              </CardTitle>
-              <Button 
-                type="button" 
-                size="sm" 
-                variant="outline" 
-                onClick={handleAddItem}
-                className="text-xs border-boho-terracotta text-boho-terracotta hover:bg-boho-terracotta/5"
-              >
-                <Plus className="h-3.5 w-3.5 mr-1" /> Agregar Fila
-              </Button>
+              <div>
+                <CardTitle className="text-base font-serif font-bold text-boho-stone flex items-center gap-2">
+                  <Calculator className="h-4 w-4 text-boho-terracotta" /> Desglose Económico (Hoja 2)
+                </CardTitle>
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  type="button" 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => handleAddItem("Flete / traslado", 1, 0, 200)}
+                  className="text-xs border-zinc-300 text-zinc-700 hover:bg-zinc-50"
+                >
+                  + Flete
+                </Button>
+                <Button 
+                  type="button" 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => handleAddItem()}
+                  className="text-xs border-boho-terracotta text-boho-terracotta hover:bg-boho-terracotta/5"
+                >
+                  <Plus className="h-3.5 w-3.5 mr-1" /> Agregar Fila
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="pt-4 space-y-4">
               <div className="overflow-x-auto">
@@ -438,21 +700,23 @@ export const QuotationView: React.FC = () => {
                           <Input 
                             value={item.description} 
                             onChange={(e) => handleUpdateItem(item.id, "description", e.target.value)}
+                            placeholder="Ej. Pizza bar"
                             className="h-7 text-xs" 
                           />
                         </td>
                         <td className="p-2">
                           <Input 
                             type="number"
-                            value={item.serviceDays} 
+                            value={item.serviceDays || ""} 
                             onChange={(e) => handleUpdateItem(item.id, "serviceDays", parseInt(e.target.value) || 1)}
                             className="h-7 text-xs text-center" 
+                            placeholder="1"
                           />
                         </td>
                         <td className="p-2">
                           <Input 
                             type="number"
-                            value={item.peopleCount} 
+                            value={item.peopleCount > 0 ? item.peopleCount : ""} 
                             onChange={(e) => handleUpdateItem(item.id, "peopleCount", parseInt(e.target.value) || 0)}
                             className="h-7 text-xs text-center" 
                             placeholder="-"
@@ -461,24 +725,24 @@ export const QuotationView: React.FC = () => {
                         <td className="p-2">
                           <Input 
                             type="number"
-                            value={item.unitPrice} 
+                            value={item.unitPrice || ""} 
                             onChange={(e) => handleUpdateItem(item.id, "unitPrice", parseFloat(e.target.value) || 0)}
                             className="h-7 text-xs text-right" 
+                            placeholder="0.00"
                           />
                         </td>
                         <td className="p-2 text-right font-medium text-zinc-800">
                           ${calculateItemSubtotal(item).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
                         </td>
                         <td className="p-2 text-center">
-                          {tableItems.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveItem(item.id)}
-                              className="text-red-500 hover:text-red-700"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveItem(item.id)}
+                            className="text-red-500 hover:text-red-700 cursor-pointer"
+                            title="Eliminar fila"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -573,10 +837,10 @@ export const QuotationView: React.FC = () => {
                         COTIZACIÓN
                       </div>
                       <p className="text-[11px] text-[#6E645E] mt-2">
-                        <span className="font-semibold text-[#2C2724]">Fecha de emisión:</span> {emissionDate}
+                        <span className="font-semibold text-[#2C2724]">Fecha de emisión:</span> {emissionDate || "—"}
                       </p>
                       <p className="text-[11px] text-[#6E645E]">
-                        <span className="font-semibold text-[#2C2724]">Responsable:</span> {responsible}
+                        <span className="font-semibold text-[#2C2724]">Responsable:</span> {responsible || "—"}
                       </p>
                     </div>
                   </div>
@@ -587,14 +851,14 @@ export const QuotationView: React.FC = () => {
                       DATOS CLIENTE:
                     </h3>
                     <div className="grid grid-cols-2 gap-y-2 text-xs">
-                      <div><span className="font-semibold text-[#2C2724]">Nombre:</span> {clientName}</div>
-                      <div><span className="font-semibold text-[#2C2724]">Teléfono:</span> {clientPhone}</div>
-                      <div><span className="font-semibold text-[#2C2724]">Tipo de evento:</span> {eventType}</div>
-                      <div><span className="font-semibold text-[#2C2724]">Fecha de evento:</span> {eventDate}</div>
-                      <div><span className="font-semibold text-[#2C2724]">Horario:</span> {eventTime}</div>
-                      <div><span className="font-semibold text-[#2C2724]">Número de personas:</span> {peopleCount}</div>
+                      <div><span className="font-semibold text-[#2C2724]">Nombre:</span> {clientName || "—"}</div>
+                      <div><span className="font-semibold text-[#2C2724]">Teléfono:</span> {clientPhone || "—"}</div>
+                      <div><span className="font-semibold text-[#2C2724]">Tipo de evento:</span> {eventType || "—"}</div>
+                      <div><span className="font-semibold text-[#2C2724]">Fecha de evento:</span> {eventDate || "—"}</div>
+                      <div><span className="font-semibold text-[#2C2724]">Horario:</span> {eventTime || "—"}</div>
+                      <div><span className="font-semibold text-[#2C2724]">Número de personas:</span> {peopleCount ? peopleCount : "—"}</div>
                       <div className="col-span-2">
-                        <span className="font-semibold text-[#2C2724]">Ubicación:</span> {eventLocation}
+                        <span className="font-semibold text-[#2C2724]">Ubicación:</span> {eventLocation || "—"}
                       </div>
                     </div>
                   </div>
@@ -604,17 +868,17 @@ export const QuotationView: React.FC = () => {
                     <div className="flex justify-between items-center bg-[#A25F4B]/10 px-4 py-2 rounded-t border border-[#D4A373]/30">
                       <div>
                         <span className="text-xs font-bold text-[#A25F4B] uppercase tracking-wider">DETALLE DEL SERVICIO:</span>
-                        <span className="text-xs font-semibold text-[#2C2724] ml-2">{serviceType}</span>
+                        <span className="text-xs font-semibold text-[#2C2724] ml-2">{serviceType || "—"}</span>
                       </div>
                       <div className="text-right">
                         <span className="text-[11px] text-[#6E645E] mr-2">Precio por persona:</span>
                         <span className="text-sm font-bold text-[#A25F4B]">
-                          ${pricePerPerson.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                          {typeof pricePerPerson === "number" ? `$${pricePerPerson.toLocaleString("es-MX", { minimumFractionDigits: 2 })}` : "—"}
                         </span>
                       </div>
                     </div>
                     <div className="bg-white/70 px-4 py-2 border-x border-b border-[#E6DED6] text-xs">
-                      <span className="font-semibold text-[#2C2724]">Menú incluido:</span> {includedMenu}
+                      <span className="font-semibold text-[#2C2724]">Menú incluido:</span> {includedMenu || "—"}
                     </div>
                   </div>
 
@@ -625,7 +889,7 @@ export const QuotationView: React.FC = () => {
                         COMIDA
                       </h4>
                       <p className="text-xs text-[#2C2724] whitespace-pre-line leading-relaxed">
-                        {foodDetails}
+                        {foodDetails || "Por definir con el cliente."}
                       </p>
                     </div>
 
@@ -634,7 +898,7 @@ export const QuotationView: React.FC = () => {
                         COMPLEMENTOS
                       </h4>
                       <p className="text-xs text-[#2C2724] whitespace-pre-line leading-relaxed">
-                        {complementDetails}
+                        {complementDetails || "Por definir con el cliente."}
                       </p>
                     </div>
                   </div>
@@ -645,7 +909,7 @@ export const QuotationView: React.FC = () => {
                       INCLUYE:
                     </h4>
                     <p className="text-xs text-[#2C2724] whitespace-pre-line leading-relaxed">
-                      {includesDetails}
+                      {includesDetails || "Por definir con el cliente."}
                     </p>
                   </div>
                 </div>
@@ -675,19 +939,19 @@ export const QuotationView: React.FC = () => {
                         COTIZACIÓN
                       </div>
                       <p className="text-[11px] text-[#6E645E] mt-2">
-                        <span className="font-semibold text-[#2C2724]">Fecha de emisión:</span> {emissionDate}
+                        <span className="font-semibold text-[#2C2724]">Fecha de emisión:</span> {emissionDate || "—"}
                       </p>
                       <p className="text-[11px] text-[#6E645E]">
-                        <span className="font-semibold text-[#2C2724]">Responsable:</span> {responsible}
+                        <span className="font-semibold text-[#2C2724]">Responsable:</span> {responsible || "—"}
                       </p>
                     </div>
                   </div>
 
                   {/* Datos Cliente Breve */}
                   <div className="mt-5 bg-white/70 px-4 py-2.5 rounded border border-[#E6DED6] flex justify-between items-center text-xs">
-                    <div><span className="font-semibold text-[#2C2724]">Cliente:</span> {clientName}</div>
-                    <div><span className="font-semibold text-[#2C2724]">Teléfono:</span> {clientPhone}</div>
-                    <div><span className="font-semibold text-[#2C2724]">Fecha Evento:</span> {eventDate}</div>
+                    <div><span className="font-semibold text-[#2C2724]">Cliente:</span> {clientName || "—"}</div>
+                    <div><span className="font-semibold text-[#2C2724]">Teléfono:</span> {clientPhone || "—"}</div>
+                    <div><span className="font-semibold text-[#2C2724]">Fecha Evento:</span> {eventDate || "—"}</div>
                   </div>
 
                   {/* Tabla Genérica por Día */}
@@ -708,7 +972,7 @@ export const QuotationView: React.FC = () => {
                       <tbody className="divide-y divide-[#E6DED6]">
                         {tableItems.map((item, idx) => (
                           <tr key={idx} className="hover:bg-zinc-50/50">
-                            <td className="p-2.5 font-medium">{item.description}</td>
+                            <td className="p-2.5 font-medium">{item.description || "—"}</td>
                             <td className="p-2.5 text-center">{item.serviceDays}</td>
                             <td className="p-2.5 text-center">{item.peopleCount > 0 ? item.peopleCount : "-"}</td>
                             <td className="p-2.5 text-right">${item.unitPrice.toLocaleString("es-MX", { minimumFractionDigits: 2 })}</td>
@@ -767,7 +1031,7 @@ export const QuotationView: React.FC = () => {
                     <div>
                       <div className="border-b border-[#2C2724] w-48 mx-auto pb-4"></div>
                       <p className="mt-1 font-semibold text-[#2C2724]">Nombre del cliente</p>
-                      <p className="text-[10px] text-[#6E645E]">{clientName}</p>
+                      <p className="text-[10px] text-[#6E645E]">{clientName || "Nombre del cliente"}</p>
                     </div>
                     <div>
                       <div className="border-b border-[#2C2724] w-48 mx-auto pb-4"></div>
