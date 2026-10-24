@@ -1039,22 +1039,22 @@ export const QuotationView: React.FC<QuotationViewProps> = ({ onOrderCreated }) 
         {/* COLUMNA VISTA PREVIA DEL PDF EXACTO (HOJAS 1 Y 2) */}
         <div className={`space-y-6 ${activeTab === "preview" ? "lg:col-span-12 block" : "lg:col-span-5 hidden lg:block"}`}>
           <div className="sticky top-6 space-y-4">
-            <div className="bg-boho-warm border border-boho-sand px-4 py-3 rounded-lg text-xs text-boho-stone flex items-center justify-between">
+            <div className="bg-boho-surface border border-boho-border px-4 py-3 rounded-lg text-xs text-boho-text flex items-center justify-between">
               <span className="font-medium flex items-center gap-2">
-                <Eye className="h-4 w-4 text-boho-terracotta" />
+                <Eye className="h-4 w-4 text-terracotta-600" />
                 Vista previa del formato oficial (Carta / 2 páginas)
               </span>
-              <span className="text-boho-muted text-[11px]">Rosé Catering Monterrey</span>
+              <span className="text-boho-text-muted text-[11px]">Rosé Catering Monterrey</span>
             </div>
 
-            {/* CONTENEDOR DE AMBAS PÁGINAS A ESCALA */}
-            <div className="space-y-6 max-h-[85vh] overflow-y-auto p-3 bg-zinc-100 rounded-xl border border-zinc-300 shadow-inner">
+            {/* CONTENEDOR DE AMBAS PÁGINAS A ESCALA (Con scroll horizontal táctil en pantallas chicas) */}
+            <div className="space-y-6 max-h-[85vh] overflow-y-auto overflow-x-auto p-2 sm:p-4 bg-zinc-100 rounded-xl border border-zinc-300 shadow-inner">
               
               {/* ===================== HOJA 1 ===================== */}
               <div 
                 ref={pdfPage1Ref}
                 style={{ width: "612pt", minHeight: "792pt" }}
-                className="bg-[#FAF8F5] text-[#2C2724] p-12 shadow-md relative mx-auto flex flex-col justify-between"
+                className="bg-[#FAF8F5] text-[#2C2724] p-8 sm:p-12 shadow-md relative mx-auto flex flex-col justify-between shrink-0"
               >
                 <div>
                   {/* Encabezado */}
@@ -1156,7 +1156,7 @@ export const QuotationView: React.FC<QuotationViewProps> = ({ onOrderCreated }) 
               <div 
                 ref={pdfPage2Ref}
                 style={{ width: "612pt", minHeight: "792pt" }}
-                className="bg-[#FAF8F5] text-[#2C2724] p-12 shadow-md relative mx-auto flex flex-col justify-between"
+                className="bg-[#FAF8F5] text-[#2C2724] p-8 sm:p-12 shadow-md relative mx-auto flex flex-col justify-between shrink-0"
               >
                 <div>
                   {/* Encabezado Hoja 2 */}

@@ -109,85 +109,88 @@ function MainLayout() {
     <div className="min-h-screen bg-boho-bg text-boho-text flex flex-col font-sans-boho">
       {/* Barra superior de Administración */}
       <header className="bg-white border-b border-boho-border-subtle sticky top-0 z-40 shadow-2xs">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-lg bg-terracotta-600 text-boho-bg flex items-center justify-center font-bold shadow-xs">
-              <Flower2 className="h-5 w-5 stroke-[1.8]" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg bg-terracotta-600 text-boho-bg flex items-center justify-center font-bold shadow-xs shrink-0">
+              <Flower2 className="h-4 w-4 sm:h-5 sm:w-5 stroke-[1.8]" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <span className="font-serif-boho font-bold text-boho-text-title text-xl tracking-tight">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <span className="font-serif-boho font-bold text-boho-text-title text-base sm:text-xl tracking-tight truncate max-w-[140px] sm:max-w-none">
                   {content.branding.businessName}
                 </span>
-                <span className="text-[11px] bg-boho-surface text-terracotta-700 font-semibold px-2 py-0.5 rounded-full border border-boho-border">
-                  Panel Operativo
+                <span className="text-[10px] sm:text-[11px] bg-boho-surface text-terracotta-700 font-semibold px-1.5 sm:px-2 py-0.5 rounded-full border border-boho-border shrink-0">
+                  Panel
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setCurrentView("public-menu")}
-              className="text-boho-text-muted hover:text-boho-text-title border-boho-border bg-boho-bg text-xs rounded-full"
+              className="text-boho-text-muted hover:text-boho-text-title border-boho-border bg-boho-bg text-xs rounded-full px-2.5 sm:px-3 h-8"
             >
-              <Globe className="h-3.5 w-3.5 mr-1.5 text-sage-500" /> Ver Menú Público
+              <Globe className="h-3.5 w-3.5 sm:mr-1.5 text-sage-500" />
+              <span className="hidden sm:inline">Ver Menú Público</span>
             </Button>
-            <div className="h-4 w-px bg-boho-border-subtle mx-1 hidden sm:block" />
-            <div className="hidden sm:flex items-center gap-2 text-xs text-boho-text-muted mr-2">
+            <div className="h-4 w-px bg-boho-border-subtle mx-1 hidden md:block" />
+            <div className="hidden md:flex items-center gap-1.5 text-xs text-boho-text-muted mr-1">
               <UserIcon className="h-3.5 w-3.5 text-boho-text-light" />
-              <span className="font-medium">{user.fullName}</span>
+              <span className="font-medium truncate max-w-[100px]">{user.fullName}</span>
             </div>
             <Button 
               variant="ghost" 
               size="sm" 
               onClick={handleLogout} 
-              className="text-red-700 hover:bg-red-50 hover:text-red-800 text-xs rounded-full"
+              className="text-red-700 hover:bg-red-50 hover:text-red-800 text-xs rounded-full px-2.5 sm:px-3 h-8"
+              title="Cerrar sesión"
             >
-              <LogOut className="h-3.5 w-3.5 mr-1" /> Salir
+              <LogOut className="h-3.5 w-3.5 sm:mr-1" />
+              <span className="hidden sm:inline">Salir</span>
             </Button>
           </div>
         </div>
 
-        {/* Pestañas de Navegación del Panel */}
-        <div className="max-w-7xl mx-auto px-6 flex gap-2 border-t border-boho-surface">
+        {/* Pestañas de Navegación del Panel con scroll horizontal táctil para móviles e iPad */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex gap-1 sm:gap-2 border-t border-boho-surface overflow-x-auto no-scrollbar">
           <button
             onClick={() => setAdminTab("orders")}
-            className={`py-3 px-4 text-xs font-semibold border-b-2 flex items-center gap-2 transition-all cursor-pointer ${
+            className={`py-3 px-3 sm:px-4 text-xs font-semibold border-b-2 flex items-center gap-1.5 sm:gap-2 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
               adminTab === "orders"
                 ? "border-terracotta-600 text-terracotta-600"
                 : "border-transparent text-boho-text-muted hover:text-boho-text"
             }`}
           >
-            <ClipboardList className="h-4 w-4" /> Gestión de Pedidos &amp; Urgencias
+            <ClipboardList className="h-4 w-4 shrink-0" /> Pedidos &amp; Urgencias
           </button>
           <button
             onClick={() => setAdminTab("menu")}
-            className={`py-3 px-4 text-xs font-semibold border-b-2 flex items-center gap-2 transition-all cursor-pointer ${
+            className={`py-3 px-3 sm:px-4 text-xs font-semibold border-b-2 flex items-center gap-1.5 sm:gap-2 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
               adminTab === "menu"
                 ? "border-terracotta-600 text-terracotta-600"
                 : "border-transparent text-boho-text-muted hover:text-boho-text"
             }`}
           >
-            <UtensilsCrossed className="h-4 w-4" /> Administrar Menú
+            <UtensilsCrossed className="h-4 w-4 shrink-0" /> Catálogo de Menú
           </button>
           <button
             onClick={() => setAdminTab("quotation")}
-            className={`py-3 px-4 text-xs font-semibold border-b-2 flex items-center gap-2 transition-all cursor-pointer ${
+            className={`py-3 px-3 sm:px-4 text-xs font-semibold border-b-2 flex items-center gap-1.5 sm:gap-2 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
               adminTab === "quotation"
                 ? "border-terracotta-600 text-terracotta-600"
                 : "border-transparent text-boho-text-muted hover:text-boho-text"
             }`}
           >
-            <Calculator className="h-4 w-4" /> Cotizador
+            <Calculator className="h-4 w-4 shrink-0" /> Cotizador
           </button>
         </div>
       </header>
 
       {/* Contenido Principal de Admin */}
-      <main className="max-w-7xl mx-auto px-6 py-8 flex-1 w-full">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-8 flex-1 w-full pb-16 sm:pb-8">
         {adminTab === "orders" && <OrdersKanbanView />}
         {adminTab === "menu" && <MenuAdminView />}
         {adminTab === "quotation" && <QuotationView />}
