@@ -90,41 +90,75 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 // ==========================================
-// ENDPOINTS DE SALUD & DIAGNÓSTICO
+// ENDPOINTS DE SALUD Y DIAGNÓSTICO
 // ==========================================
 app.MapGet("/", () => Results.Ok(new { status = "online", service = "Rose Catering API .NET 10" }));
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }));
 
-app.MapGet("/api/diagnostics/db-test", async (IDbConnectionFactory dbFactory) =>
+app.MapGet("/api/diagnostics/db", async (IDbConnectionFactory db) =>
 {
+    var rawConn = Environment.GetEnvironmentVariable("CONNECTION_STRING") ?? "(no CONNECTION_STRING env)";
+    
+    // Ocultar la contraseña por seguridad en el reporte
+    var maskedConn = System.Text.RegularExpressions.Regex.Replace(
+        rawConn, 
+        "(Password|pwd)=[^;]+", 
+        "$1=********", 
+        System.Text.RegularExpressions.RegexOptions.IgnoreCase
+    );
+
     try
     {
-        using var conn = dbFactory.CreateConnection();
+        using var conn = db.CreateConnection();
         conn.Open();
+
         using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT current_database(), current_user, version();";
         using var reader = cmd.ExecuteReader();
-        if (reader.Read())
+        reader.Read();
+        var currentDb = reader.GetString(0);
+        var currentUser = reader.GetString(1);
+        var version = reader.GetString(2);
+        reader.Close();
+
+        // Verificar existencia de tablas críticas
+        cmd.CommandText = """
+            SELECT table_name 
+            FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+              AND table_name IN ('user', 'menu_item', 'menu_category', 'order', 'table_sequence');
+        """;
+        var tables = new List<string>();
+        using var tableReader = cmd.ExecuteReader();
+        while (tableReader.Read())
         {
-            return Results.Ok(new
-            {
-                success = true,
-                database = reader.GetString(0),
-                user = reader.GetString(1),
-                version = reader.GetString(2)
-            });
+            tables.Add(tableReader.GetString(0));
         }
-        return Results.Ok(new { success = true, message = "Conectado pero sin datos" });
+        tableReader.Close();
+
+        return Results.Ok(new
+        {
+            status = "connected",
+            database = currentDb,
+            user = currentUser,
+            tablesFound = tables,
+            connectionStringConfigured = maskedConn,
+            serverVersion = version
+        });
     }
     catch (Exception ex)
     {
-        return Results.Json(new
-        {
-            success = false,
-            errorType = ex.GetType().FullName,
-            message = ex.Message,
-            inner = ex.InnerException?.Message
-        }, statusCode: 500);
+        return Results.Problem(
+            detail: ex.ToString(),
+            title: "Error al conectar con la Base de Datos",
+            statusCode: 500,
+            extensions: new Dictionary<string, object?>
+            {
+                { "connectionStringConfigured", maskedConn },
+                { "exceptionType", ex.GetType().FullName },
+                { "errorMessage", ex.Message }
+            }
+        );
     }
 });
 
