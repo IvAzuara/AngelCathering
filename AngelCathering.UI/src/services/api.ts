@@ -35,9 +35,23 @@ export interface QuotePreset {
   updatedAt?: string;
 }
 
+export interface Season {
+  idSeason: number;
+  name: string;
+  slug: string;
+  badgeText?: string;
+  description?: string;
+  bannerUrl?: string;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface MenuItem {
   idItem: number;
   idCategory: number;
+  idSeason?: number | null;
+  seasonName?: string | null;
   categoryName: string;
   title: string;
   description?: string;
@@ -230,5 +244,63 @@ export const api = {
       headers: getAuthHeaders(),
     });
     if (!res.ok) throw new Error('Error al eliminar plantilla de cotización');
+  },
+
+  // Temporadas (Seasons)
+  getActiveSeasons: async (): Promise<Season[]> => {
+    const res = await fetch(`${BASE_URL}/api/seasons/active`);
+    if (!res.ok) throw new Error('Error al obtener temporadas activas');
+    return res.json();
+  },
+
+  getAllSeasons: async (): Promise<Season[]> => {
+    const res = await fetch(`${BASE_URL}/api/seasons/all`, { headers: getAuthHeaders() });
+    if (!res.ok) throw new Error('Error al obtener catálogo de temporadas');
+    return res.json();
+  },
+
+  saveSeason: async (season: Partial<Season>) => {
+    const isUpdate = !!season.idSeason;
+    const url = isUpdate ? `${BASE_URL}/api/seasons/${season.idSeason}` : `${BASE_URL}/api/seasons`;
+    const res = await fetch(url, {
+      method: isUpdate ? 'PUT' : 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(season),
+    });
+    if (!res.ok) throw new Error('Error al guardar temporada');
+    return res.status === 204 ? null : res.json();
+  },
+
+  toggleSeason: async (id: number, isActive: boolean) => {
+    const res = await fetch(`${BASE_URL}/api/seasons/${id}/toggle`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ isActive }),
+    });
+    if (!res.ok) throw new Error('Error al cambiar estado de la temporada');
+  },
+
+  // Solicitud pública de cotización
+  requestPublicQuote: async (data: {
+    customerName: string;
+    customerPhone: string;
+    customerEmail?: string;
+    eventType: string;
+    eventDate?: string;
+    guestCount: number;
+    serviceLocation?: string;
+    selectedPackage?: string;
+    notes?: string;
+  }) => {
+    const res = await fetch(`${BASE_URL}/api/public/request-quote`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Error al enviar solicitud de cotización');
+    }
+    return res.json();
   },
 };

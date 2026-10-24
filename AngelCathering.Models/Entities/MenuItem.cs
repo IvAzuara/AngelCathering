@@ -4,7 +4,9 @@ public class MenuItem
 {
     public int IdItem { get; set; }
     public int IdCategory { get; set; }
+    public int? IdSeason { get; set; }
     public string CategoryName { get; set; } = string.Empty;
+    public string? SeasonName { get; set; }
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
     public decimal Price { get; set; }

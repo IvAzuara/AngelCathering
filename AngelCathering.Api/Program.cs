@@ -84,6 +84,7 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IMenuRepository, MenuRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IQuotePresetRepository, QuotePresetRepository>();
+builder.Services.AddScoped<ISeasonRepository, SeasonRepository>();
 
 var app = builder.Build();
 
@@ -576,5 +577,96 @@ presetGroup.MapDelete("/{id:int}", async (int id, IQuotePresetRepository repo) =
     var success = await repo.DeletePresetAsync(id);
     return success ? Results.NoContent() : Results.NotFound();
 }).RequireAuthorization();
+
+// ==========================================
+// GRUPO DE TEMPORADAS (SEASONS)
+// ==========================================
+var seasonsGroup = app.MapGroup("/api/seasons");
+
+// Listado público de temporadas activas
+seasonsGroup.MapGet("/active", async (ISeasonRepository repo) =>
+{
+    var seasons = await repo.GetActiveSeasonsAsync();
+    return Results.Ok(seasons);
+});
+
+// Listado completo (Admin)
+seasonsGroup.MapGet("/all", async (ISeasonRepository repo) =>
+{
+    var seasons = await repo.GetAllSeasonsAsync();
+    return Results.Ok(seasons);
+}).RequireAuthorization();
+
+// Crear temporada
+seasonsGroup.MapPost("/", async (UpsertSeasonDto dto, ISeasonRepository repo) =>
+{
+    if (string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.Slug))
+    {
+        return Results.BadRequest(new { error = "El nombre y el slug de la temporada son obligatorios." });
+    }
+    var id = await repo.CreateSeasonAsync(dto);
+    return Results.Created($"/api/seasons/{id}", new { idSeason = id });
+}).RequireAuthorization();
+
+// Actualizar temporada
+seasonsGroup.MapPut("/{id:int}", async (int id, UpsertSeasonDto dto, ISeasonRepository repo) =>
+{
+    if (string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.Slug))
+    {
+        return Results.BadRequest(new { error = "El nombre y el slug de la temporada son obligatorios." });
+    }
+    var success = await repo.UpdateSeasonAsync(id, dto);
+    return success ? Results.NoContent() : Results.NotFound();
+}).RequireAuthorization();
+
+// Switch / Toggle de activación inmediata (ON/OFF)
+seasonsGroup.MapPatch("/{id:int}/toggle", async (int id, ToggleSeasonDto dto, ISeasonRepository repo) =>
+{
+    var success = await repo.ToggleActiveAsync(id, dto.IsActive);
+    return success ? Results.NoContent() : Results.NotFound();
+}).RequireAuthorization();
+
+// ==========================================
+// SOLICITUD PÚBLICA DE COTIZACIÓN (CLIENTE -> SISTEMA)
+// ==========================================
+app.MapPost("/api/public/request-quote", async (PublicQuoteRequestDto dto, IOrderRepository orderRepo) =>
+{
+    if (string.IsNullOrWhiteSpace(dto.CustomerName) || string.IsNullOrWhiteSpace(dto.CustomerPhone))
+    {
+        return Results.BadRequest(new { error = "Por favor ingresa tu nombre y un número de teléfono o WhatsApp." });
+    }
+
+    var eventDate = DateTime.UtcNow.AddDays(7).Date;
+    if (!string.IsNullOrWhiteSpace(dto.EventDate) && DateTime.TryParse(dto.EventDate, out var parsedDate))
+    {
+        eventDate = parsedDate.Date;
+    }
+
+    var notes = $"[SOLICITUD EN LÍNEA]" +
+                $"\nPaquete / Platillo: {dto.SelectedPackage ?? "Personalizado"}" +
+                $"\nUbicación tentativa: {dto.ServiceLocation ?? "Por definir"}" +
+                $"\nNotas adicionales: {dto.Notes ?? "Ninguna"}";
+
+    var orderDto = new UpsertOrderDto(
+        CustomerName: dto.CustomerName.Trim(),
+        CustomerPhone: dto.CustomerPhone.Trim(),
+        CustomerEmail: dto.CustomerEmail?.Trim(),
+        EventType: string.IsNullOrWhiteSpace(dto.EventType) ? "Catering General" : dto.EventType.Trim(),
+        EventDate: eventDate,
+        GuestCount: dto.GuestCount > 0 ? dto.GuestCount : 20,
+        Status: "PENDIENTE",
+        IsUrgent: false,
+        SortPriority: 1, // Prioridad alta para revisión
+        TotalEstimated: 0.00m,
+        Notes: notes
+    );
+
+    var idOrder = await orderRepo.CreateOrderAsync(orderDto);
+    return Results.Ok(new { 
+        success = true, 
+        idOrder, 
+        message = "¡Tu solicitud ha sido recibida con éxito! Nuestro equipo revisará la disponibilidad y te enviará la cotización formal." 
+    });
+});
 
 app.Run();

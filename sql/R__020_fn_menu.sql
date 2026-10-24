@@ -21,12 +21,14 @@ AS $$
     ORDER BY "c"."sort_order" ASC, "c"."name" ASC;
 $$;
 
--- Menú público (platillos disponibles)
+-- Menú público (platillos disponibles filtrando por temporadas activas)
 DROP FUNCTION IF EXISTS "fn_menu_item_list_public"();
 CREATE OR REPLACE FUNCTION "fn_menu_item_list_public"()
 RETURNS TABLE (
      "id_item" INT
     ,"id_category" INT
+    ,"id_season" INT
+    ,"season_name" VARCHAR
     ,"category_name" VARCHAR
     ,"title" VARCHAR
     ,"description" TEXT
@@ -40,12 +42,17 @@ RETURNS TABLE (
 LANGUAGE sql
 STABLE
 AS $$
-    SELECT "i"."id_item", "i"."id_category", "c"."name" AS "category_name",
+    SELECT "i"."id_item", "i"."id_category", "i"."id_season",
+           "s"."name" AS "season_name",
+           "c"."name" AS "category_name",
            "i"."title", "i"."description", "i"."price", "i"."unit_label",
            "i"."image_url", "i"."is_available", "i"."created_at", "i"."updated_at"
     FROM "menu_item" AS "i"
     JOIN "menu_category" AS "c" ON "i"."id_category" = "c"."id_category"
-    WHERE "i"."is_available" = TRUE AND "c"."is_active" = TRUE
+    LEFT JOIN "season" AS "s" ON "i"."id_season" = "s"."id_season"
+    WHERE "i"."is_available" = TRUE 
+      AND "c"."is_active" = TRUE
+      AND ("i"."id_season" IS NULL OR "s"."is_active" = TRUE)
     ORDER BY "c"."sort_order" ASC, "i"."title" ASC;
 $$;
 

@@ -6,12 +6,36 @@ public record LoginResponseDto(string Token, string Username, string FullName);
 
 public record UpsertMenuItemDto(
     int IdCategory,
+    int? IdSeason,
     string Title,
     string? Description,
     decimal Price,
     string UnitLabel,
     string? ImageUrl,
     bool IsAvailable
+);
+
+public record UpsertSeasonDto(
+    string Name,
+    string Slug,
+    string? BadgeText,
+    string? Description,
+    string? BannerUrl,
+    bool IsActive = true
+);
+
+public record ToggleSeasonDto(bool IsActive);
+
+public record PublicQuoteRequestDto(
+    string CustomerName,
+    string CustomerPhone,
+    string? CustomerEmail,
+    string EventType,
+    string? EventDate,
+    int GuestCount,
+    string? ServiceLocation,
+    string? SelectedPackage,
+    string? Notes
 );
 
 public record UpsertOrderDto(

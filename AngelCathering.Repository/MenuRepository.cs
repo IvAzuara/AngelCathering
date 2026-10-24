@@ -35,7 +35,8 @@ public class MenuRepository : IMenuRepository
         var categories = (await conn.QueryAsync<MenuCategory>(catSql)).ToList();
 
         const string itemSql = """
-            SELECT id_item AS IdItem, id_category AS IdCategory, category_name AS CategoryName,
+            SELECT id_item AS IdItem, id_category AS IdCategory, id_season AS IdSeason,
+                   season_name AS SeasonName, category_name AS CategoryName,
                    title, description, price, unit_label AS UnitLabel, 
                    image_url AS ImageUrl, is_available AS IsAvailable,
                    created_at AS CreatedAt, updated_at AS UpdatedAt

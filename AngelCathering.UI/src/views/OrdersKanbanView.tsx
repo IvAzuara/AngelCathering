@@ -7,10 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { 
   Plus, Flame, Calendar, Users, DollarSign, Phone, 
-  ArrowRight, ArrowLeft, CheckCircle2, XCircle, Trash2, Edit2
+  ArrowRight, ArrowLeft, CheckCircle2, XCircle, Trash2, Edit2,
+  FileSpreadsheet
 } from "lucide-react";
 
-export const OrdersKanbanView: React.FC = () => {
+interface OrdersKanbanViewProps {
+  onOpenInQuotation?: (order: Order) => void;
+}
+
+export const OrdersKanbanView: React.FC<OrdersKanbanViewProps> = ({ onOpenInQuotation }) => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [historyOrders, setHistoryOrders] = useState<Order[]>([]);
   const [showHistory, setShowHistory] = useState(false);
@@ -222,6 +227,7 @@ export const OrdersKanbanView: React.FC = () => {
                       setIsModalOpen(true);
                     }}
                     onDelete={() => handleDelete(order.idOrder)}
+                    onOpenInQuotation={onOpenInQuotation ? () => onOpenInQuotation(order) : undefined}
                   />
                 ))
               )}
@@ -389,6 +395,7 @@ interface OrderCardProps {
   onCancel?: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onOpenInQuotation?: () => void;
 }
 
 const OrderCard: React.FC<OrderCardProps> = ({
@@ -401,9 +408,18 @@ const OrderCard: React.FC<OrderCardProps> = ({
   onCancel,
   onEdit,
   onDelete,
+  onOpenInQuotation,
 }) => {
+  const isOnlineRequest = order.notes?.includes("[SOLICITUD EN LÍNEA]");
+
   return (
-    <Card className={`border shadow-xs transition-all ${order.isUrgent ? 'border-red-400 bg-red-50/30 ring-1 ring-red-400' : 'border-zinc-200 bg-white'}`}>
+    <Card className={`border shadow-xs transition-all ${
+      order.isUrgent 
+        ? 'border-red-400 bg-red-50/30 ring-1 ring-red-400' 
+        : isOnlineRequest 
+          ? 'border-terracotta-300 bg-terracotta-50/20' 
+          : 'border-zinc-200 bg-white'
+    }`}>
       <CardHeader className="p-4 pb-2">
         <div className="flex justify-between items-start gap-2">
           <div>
@@ -414,10 +430,24 @@ const OrderCard: React.FC<OrderCardProps> = ({
                   <Flame className="h-3 w-3 fill-red-600" /> URGENTE
                 </Badge>
               )}
+              {isOnlineRequest && (
+                <span className="text-[10px] bg-terracotta-100 text-terracotta-800 font-semibold px-2 py-0.5 rounded-full border border-terracotta-200">
+                  Web
+                </span>
+              )}
             </div>
-            <div className="text-xs font-medium text-indigo-700 mt-0.5">{order.eventType}</div>
+            <div className="text-xs font-medium text-terracotta-700 mt-0.5">{order.eventType}</div>
           </div>
           <div className="flex items-center gap-1">
+            {onOpenInQuotation && (
+              <button
+                onClick={onOpenInQuotation}
+                title="Abrir y cotizar formalmente en PDF"
+                className="p-1 rounded hover:bg-terracotta-100 text-terracotta-600 hover:text-terracotta-800"
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+              </button>
+            )}
             <button
               onClick={onToggleUrgent}
               title={order.isUrgent ? "Quitar urgencia" : "Marcar urgente"}

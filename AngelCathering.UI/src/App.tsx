@@ -19,6 +19,7 @@ function MainLayout() {
   const { content } = useSiteContent();
   const [currentView, setCurrentView] = useState<AppView>("public-menu");
   const [adminTab, setAdminTab] = useState<AdminTab>("orders");
+  const [selectedOrderForQuotation, setSelectedOrderForQuotation] = useState<any | null>(null);
   const [user, setUser] = useState<{ username: string; fullName: string } | null>(null);
   const [isValidating, setIsValidating] = useState(false);
 
@@ -191,9 +192,20 @@ function MainLayout() {
 
       {/* Contenido Principal de Admin */}
       <main className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-8 flex-1 w-full pb-16 sm:pb-8">
-        {adminTab === "orders" && <OrdersKanbanView />}
+        {adminTab === "orders" && (
+          <OrdersKanbanView 
+            onOpenInQuotation={(order) => {
+              setSelectedOrderForQuotation(order);
+              setAdminTab("quotation");
+            }}
+          />
+        )}
         {adminTab === "menu" && <MenuAdminView />}
-        {adminTab === "quotation" && <QuotationView />}
+        {adminTab === "quotation" && (
+          <QuotationView 
+            initialOrderData={selectedOrderForQuotation} 
+          />
+        )}
       </main>
     </div>
   );

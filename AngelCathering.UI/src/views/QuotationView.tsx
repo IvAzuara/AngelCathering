@@ -48,9 +48,10 @@ const DEFAULT_PIZZA_PRESET: QuotePreset = {
 
 interface QuotationViewProps {
   onOrderCreated?: () => void;
+  initialOrderData?: any;
 }
 
-export const QuotationView: React.FC<QuotationViewProps> = ({ onOrderCreated }) => {
+export const QuotationView: React.FC<QuotationViewProps> = ({ onOrderCreated, initialOrderData }) => {
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [presets, setPresets] = useState<QuotePreset[]>([DEFAULT_PIZZA_PRESET]);
   const [isLoadingPresets, setIsLoadingPresets] = useState(false);
@@ -143,7 +144,22 @@ export const QuotationView: React.FC<QuotationViewProps> = ({ onOrderCreated }) 
     setResponsible("Linda Camacho");
 
     loadPresetsFromDb();
-  }, []);
+
+    // Precargar datos si viene de una orden seleccionada en Kanban
+    if (initialOrderData) {
+      if (initialOrderData.customerName) setClientName(initialOrderData.customerName);
+      if (initialOrderData.customerPhone) setClientPhone(initialOrderData.customerPhone);
+      if (initialOrderData.eventType) setEventType(initialOrderData.eventType);
+      if (initialOrderData.eventDate) setEventDate(new Date(initialOrderData.eventDate).toLocaleDateString("es-MX", { day: '2-digit', month: 'long', year: 'numeric' }));
+      if (initialOrderData.guestCount) {
+        setPeopleCount(initialOrderData.guestCount);
+        setTableItems(prev => prev.map((item, idx) => idx === 0 ? { ...item, peopleCount: initialOrderData.guestCount } : item));
+      }
+      if (initialOrderData.notes) {
+        setNotes(initialOrderData.notes);
+      }
+    }
+  }, [initialOrderData]);
 
   // Cálculos económicos
   const calculateItemSubtotal = (item: QuoteItem) => {
