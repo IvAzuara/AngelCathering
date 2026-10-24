@@ -252,8 +252,19 @@ app.MapGet("/api/auth/me", (ClaimsPrincipal user) =>
 // ==========================================
 app.MapGet("/api/menu/public", async (IMenuRepository repo) =>
 {
-    var menu = await repo.GetPublicMenuAsync();
-    return Results.Ok(menu);
+    try
+    {
+        var menu = await repo.GetPublicMenuAsync();
+        return Results.Ok(menu);
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem(
+            detail: ex.ToString(),
+            title: "Error in /api/menu/public",
+            statusCode: 500
+        );
+    }
 });
 
 // ==========================================
@@ -263,8 +274,19 @@ var menuGroup = app.MapGroup("/api/menu").RequireAuthorization();
 
 menuGroup.MapGet("/categories", async (IMenuRepository repo) =>
 {
-    var categories = await repo.GetCategoriesAsync();
-    return Results.Ok(categories);
+    try
+    {
+        var categories = await repo.GetCategoriesAsync();
+        return Results.Ok(categories);
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem(
+            detail: ex.ToString(),
+            title: "Error in /api/menu/categories",
+            statusCode: 500
+        );
+    }
 });
 
 menuGroup.MapGet("/items", async (IMenuRepository repo) =>
@@ -336,8 +358,19 @@ ordersGroup.MapGet("/active", async (IOrderRepository repo) =>
 
 ordersGroup.MapGet("/history", async (IOrderRepository repo) =>
 {
-    var orders = await repo.GetHistoryOrdersAsync();
-    return Results.Ok(orders);
+    try
+    {
+        var orders = await repo.GetHistoryOrdersAsync();
+        return Results.Ok(orders);
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem(
+            detail: ex.ToString(),
+            title: "Error in /api/orders/history",
+            statusCode: 500
+        );
+    }
 });
 
 ordersGroup.MapGet("/{id:int}", async (int id, IOrderRepository repo) =>
