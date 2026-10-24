@@ -20,6 +20,21 @@ export function getFullImageUrl(imageUrl?: string | null): string | undefined {
   return `${BASE_URL}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
 }
 
+export interface QuotePreset {
+  idPreset: number;
+  name: string;
+  serviceType: string;
+  includedMenu: string;
+  pricePerPerson: number;
+  foodDetails?: string;
+  complementDetails?: string;
+  includesDetails?: string;
+  defaultDescription?: string;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface MenuItem {
   idItem: number;
   idCategory: number;
@@ -188,5 +203,32 @@ export const api = {
       headers: getAuthHeaders(),
     });
     if (!res.ok) throw new Error('Error al eliminar pedido');
+  },
+
+  // Plantillas de Cotización (Quote Presets)
+  getQuotePresets: async (): Promise<QuotePreset[]> => {
+    const res = await fetch(`${BASE_URL}/api/quote-presets`);
+    if (!res.ok) throw new Error('Error al obtener plantillas de cotización');
+    return res.json();
+  },
+
+  saveQuotePreset: async (preset: Partial<QuotePreset>) => {
+    const isUpdate = !!preset.idPreset;
+    const url = isUpdate ? `${BASE_URL}/api/quote-presets/${preset.idPreset}` : `${BASE_URL}/api/quote-presets`;
+    const res = await fetch(url, {
+      method: isUpdate ? 'PUT' : 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(preset),
+    });
+    if (!res.ok) throw new Error('Error al guardar plantilla de cotización');
+    return res.status === 204 ? null : res.json();
+  },
+
+  deleteQuotePreset: async (id: number) => {
+    const res = await fetch(`${BASE_URL}/api/quote-presets/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) throw new Error('Error al eliminar plantilla de cotización');
   },
 };

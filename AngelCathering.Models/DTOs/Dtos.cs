@@ -33,3 +33,15 @@ public record UpdateOrderStatusDto(
     bool? IsUrgent,
     int? SortPriority
 );
+
+public record UpsertQuotePresetDto(
+    string Name,
+    string ServiceType,
+    string IncludedMenu,
+    decimal PricePerPerson,
+    string? FoodDetails,
+    string? ComplementDetails,
+    string? IncludesDetails,
+    string? DefaultDescription,
+    bool IsActive = true
+);

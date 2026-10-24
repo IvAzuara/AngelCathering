@@ -83,6 +83,7 @@ builder.Services.AddSingleton<IDbConnectionFactory, DbConnectionFactory>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IMenuRepository, MenuRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IQuotePresetRepository, QuotePresetRepository>();
 
 var app = builder.Build();
 
@@ -528,5 +529,52 @@ ordersGroup.MapDelete("/{id:int}", async (int id, IOrderRepository repo) =>
     var success = await repo.DeleteOrderAsync(id);
     return success ? Results.NoContent() : Results.NotFound();
 });
+
+// ==========================================
+// GRUPO DE PLANTILLAS DE COTIZACIÓN (QUOTE PRESETS)
+// ==========================================
+var presetGroup = app.MapGroup("/api/quote-presets");
+
+// Listado público o para usuarios (para usarse en el cotizador)
+presetGroup.MapGet("/", async (IQuotePresetRepository repo) =>
+{
+    var presets = await repo.GetAllPresetsAsync();
+    return Results.Ok(presets);
+});
+
+presetGroup.MapGet("/{id:int}", async (int id, IQuotePresetRepository repo) =>
+{
+    var preset = await repo.GetByIdAsync(id);
+    return preset is not null ? Results.Ok(preset) : Results.NotFound();
+});
+
+// Operaciones protegidas para Administradores
+presetGroup.MapPost("/", async (UpsertQuotePresetDto dto, IQuotePresetRepository repo) =>
+{
+    if (string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.ServiceType))
+    {
+        return Results.BadRequest(new { error = "El nombre de la plantilla y el tipo de servicio son obligatorios." });
+    }
+
+    var id = await repo.CreatePresetAsync(dto);
+    return Results.Created($"/api/quote-presets/{id}", new { idPreset = id });
+}).RequireAuthorization();
+
+presetGroup.MapPut("/{id:int}", async (int id, UpsertQuotePresetDto dto, IQuotePresetRepository repo) =>
+{
+    if (string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.ServiceType))
+    {
+        return Results.BadRequest(new { error = "El nombre de la plantilla y el tipo de servicio son obligatorios." });
+    }
+
+    var success = await repo.UpdatePresetAsync(id, dto);
+    return success ? Results.NoContent() : Results.NotFound();
+}).RequireAuthorization();
+
+presetGroup.MapDelete("/{id:int}", async (int id, IQuotePresetRepository repo) =>
+{
+    var success = await repo.DeletePresetAsync(id);
+    return success ? Results.NoContent() : Results.NotFound();
+}).RequireAuthorization();
 
 app.Run();

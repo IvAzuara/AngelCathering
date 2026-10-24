@@ -11,12 +11,16 @@ import {
   RefreshCw,
   ShoppingBag,
   CheckCircle,
-  RotateCcw
+  RotateCcw,
+  Settings2,
+  Edit2,
+  X,
+  Check
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { api } from "@/services/api";
+import { api, type QuotePreset } from "@/services/api";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
@@ -28,68 +32,33 @@ interface QuoteItem {
   unitPrice: number;
 }
 
-// Plantillas / Presets predefinidos para agilizar la cotización
-interface QuotePreset {
-  name: string;
-  serviceType: string;
-  includedMenu: string;
-  pricePerPerson: number;
-  foodDetails: string;
-  complementDetails: string;
-  includesDetails: string;
-  defaultDescription: string;
-}
-
-const PRESETS: QuotePreset[] = [
-  {
-    name: "🍕 Pizza Bar Artesanal",
-    serviceType: "Pizza Bar",
-    includedMenu: "Pizza artesanal + complementos",
-    pricePerPerson: 200,
-    foodDetails: "Variedad de pizzas: pepperoni, hawaiana, jamón, champiñones, 2 quesos\n\nPasta (a elegir)\n\nEnsalada italiana",
-    complementDetails: "Aderezos gourmet\n\nQueso parmesano\n\nChile quebrado",
-    includesDetails: "1 hora de servicio continuo\nPersonal de cocina y atención\nDesechables biodegradables (platos y cubiertos)\nDecoración temática rústica / boho",
-    defaultDescription: "Pizza bar artesanal"
-  },
-  {
-    name: "🌮 Taquiza Gourmet / Cazuelas",
-    serviceType: "Taquiza Tradicional & Gourmet",
-    includedMenu: "5 guisados a elegir + guarniciones",
-    pricePerPerson: 185,
-    foodDetails: "Cazuelas calientes (chicharrón en salsa verde, deshebrada, tinga de pollo, picadillo, rajas con crema)\n\nArroz mexicano\n\nFrijoles refritos con veneno",
-    complementDetails: "Salsas de la casa (verde cruda, roja tatemada, habanero)\n\nCebollita con cilantro y limones\n\nTortillas de maíz y harina recién hechas",
-    includesDetails: "2 horas de servicio\nBufeteras calientes y cazuelas de barro rústicas\nPersonal uniformado de servicio\nDesechables y servilletas de tela",
-    defaultDescription: "Taquiza buffet de cazuelas"
-  },
-  {
-    name: "🥪 Box Lunch & Coffee Break",
-    serviceType: "Coffee Break Ejecutivo / Social",
-    includedMenu: "Bocadillos individuales + estación de café",
-    pricePerPerson: 140,
-    foodDetails: "Croissants de pechuga de pavo y queso gouda\n\nMinitartaletas de frutas de temporada\n\nGalletas artesanales de avena y chispas",
-    complementDetails: "Café de grano recién tostado (americano y capuchino)\n\nVariedad de tés e infusiones naturales\n\nJugos naturales de naranja y frutos rojos",
-    includesDetails: "Estación de café autoservicio por 3 horas\nVasos, agitadores y servilletas eco-friendly\nMontaje floral con elementos botánicos",
-    defaultDescription: "Servicio Coffee Break & Box Lunch"
-  },
-  {
-    name: "🥩 Menú Formal de 3 Tiempos",
-    serviceType: "Banquete 3 Tiempos Formal",
-    includedMenu: "Entrada + Plato fuerte + Postre",
-    pricePerPerson: 380,
-    foodDetails: "1er Tiempo: Crema de cilantro con nuez o Ensalada de pera y queso de cabra\n\n2do Tiempo: Medallón de res al vino tinto con puré rústico y espárragos\n\n3er Tiempo: Cheesecake de frutos rojos o Mostachón artesanal",
-    complementDetails: "Pan artesanal de masa madre con mantequilla de finas hierbas\n\nServicio de aderezos de autor",
-    includesDetails: "3 horas de servicio completo a la mesa\nMeseros y chef en sitio\nLoza de cerámica, cristalería y cubertería de lujo\nMontaje de mesas con mantelería boho",
-    defaultDescription: "Banquete formal de 3 tiempos"
-  }
-];
+// Fallback estático en caso de que la red falle
+const DEFAULT_PIZZA_PRESET: QuotePreset = {
+  idPreset: 1,
+  name: "🍕 Pizza Bar Artesanal",
+  serviceType: "Pizza Bar",
+  includedMenu: "Pizza artesanal + complementos",
+  pricePerPerson: 200,
+  foodDetails: "Variedad de pizzas: pepperoni, hawaiana, jamón, champiñones, 2 quesos\n\nPasta (a elegir)\n\nEnsalada italiana",
+  complementDetails: "Aderezos gourmet\n\nQueso parmesano\n\nChile quebrado",
+  includesDetails: "1 hora de servicio continuo\nPersonal de cocina y atención\nDesechables biodegradables (platos y cubiertos)\nDecoración temática rústica / boho",
+  defaultDescription: "Pizza bar artesanal",
+  isActive: true
+};
 
 interface QuotationViewProps {
   onOrderCreated?: () => void;
 }
 
 export const QuotationView: React.FC<QuotationViewProps> = ({ onOrderCreated }) => {
-  // Verificar si hay usuario logueado en sessionStorage
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [presets, setPresets] = useState<QuotePreset[]>([DEFAULT_PIZZA_PRESET]);
+  const [isLoadingPresets, setIsLoadingPresets] = useState(false);
+
+  // Modal / Gestor de Plantillas
+  const [isManagingPresets, setIsManagingPresets] = useState(false);
+  const [editingPreset, setEditingPreset] = useState<Partial<QuotePreset> | null>(null);
+  const [isSavingPreset, setIsSavingPreset] = useState(false);
 
   // Datos Generales de la Cotización
   const [responsible, setResponsible] = useState("");
@@ -145,6 +114,24 @@ export const QuotationView: React.FC<QuotationViewProps> = ({ onOrderCreated }) 
   const pdfPage1Ref = useRef<HTMLDivElement>(null);
   const pdfPage2Ref = useRef<HTMLDivElement>(null);
 
+  // Cargar plantillas desde la base de datos
+  const loadPresetsFromDb = async () => {
+    setIsLoadingPresets(true);
+    try {
+      const data = await api.getQuotePresets();
+      if (data && data.length > 0) {
+        setPresets(data);
+      } else {
+        setPresets([DEFAULT_PIZZA_PRESET]);
+      }
+    } catch (err) {
+      console.warn("No se pudieron cargar presets de la BD, usando predeterminados:", err);
+      setPresets([DEFAULT_PIZZA_PRESET]);
+    } finally {
+      setIsLoadingPresets(false);
+    }
+  };
+
   useEffect(() => {
     const token = sessionStorage.getItem("token");
     setIsAdmin(!!token);
@@ -154,6 +141,8 @@ export const QuotationView: React.FC<QuotationViewProps> = ({ onOrderCreated }) 
     const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
     setEmissionDate(`${months[today.getMonth()]} ${today.getFullYear()}`);
     setResponsible("Linda Camacho");
+
+    loadPresetsFromDb();
   }, []);
 
   // Cálculos económicos
@@ -197,11 +186,9 @@ export const QuotationView: React.FC<QuotationViewProps> = ({ onOrderCreated }) 
     }));
   };
 
-  // Sincronizar personas cuando se cambia el dato principal
   const handleMainPeopleChange = (newCount: number) => {
     setPeopleCount(newCount);
     setTableItems(prev => prev.map((item, index) => {
-      // El primer ítem suele ser el paquete principal por comensal
       if (index === 0 || item.peopleCount > 0) {
         return { ...item, peopleCount: newCount };
       }
@@ -214,16 +201,15 @@ export const QuotationView: React.FC<QuotationViewProps> = ({ onOrderCreated }) 
     setServiceType(preset.serviceType);
     setIncludedMenu(preset.includedMenu);
     setPricePerPerson(preset.pricePerPerson);
-    setFoodDetails(preset.foodDetails);
-    setComplementDetails(preset.complementDetails);
-    setIncludesDetails(preset.includesDetails);
+    setFoodDetails(preset.foodDetails || "");
+    setComplementDetails(preset.complementDetails || "");
+    setIncludesDetails(preset.includesDetails || "");
 
-    // Ajustar primera fila de la tabla económica
     const currentGuests = typeof peopleCount === "number" ? peopleCount : 30;
     setTableItems([
       {
         id: `item-1`,
-        description: preset.defaultDescription,
+        description: preset.defaultDescription || preset.serviceType,
         serviceDays: 1,
         peopleCount: currentGuests,
         unitPrice: preset.pricePerPerson
@@ -238,7 +224,7 @@ export const QuotationView: React.FC<QuotationViewProps> = ({ onOrderCreated }) 
     ]);
   };
 
-  // Limpiar formulario a valores vacíos (conservando solo la fecha actual)
+  // Limpiar formulario a valores vacíos
   const handleResetForm = () => {
     if (!confirm("¿Deseas vaciar todos los campos del formulario?")) return;
     setClientName("");
@@ -257,6 +243,37 @@ export const QuotationView: React.FC<QuotationViewProps> = ({ onOrderCreated }) 
     setTableItems([{ id: `item-1`, description: "", serviceDays: 1, peopleCount: 0, unitPrice: 0 }]);
   };
 
+  // Guardar / Editar plantilla en base de datos (SOLO ADMIN)
+  const handleSavePreset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPreset || !editingPreset.name?.trim() || !editingPreset.serviceType?.trim()) {
+      alert("Por favor completa el nombre de la plantilla y el tipo de servicio.");
+      return;
+    }
+
+    setIsSavingPreset(true);
+    try {
+      await api.saveQuotePreset(editingPreset);
+      setEditingPreset(null);
+      await loadPresetsFromDb();
+    } catch (err: any) {
+      alert(err.message || "Error al guardar la plantilla en la base de datos.");
+    } finally {
+      setIsSavingPreset(false);
+    }
+  };
+
+  // Eliminar plantilla en base de datos (SOLO ADMIN)
+  const handleDeletePreset = async (idPreset: number) => {
+    if (!confirm("¿Estás seguro de eliminar esta plantilla de la base de datos?")) return;
+    try {
+      await api.deleteQuotePreset(idPreset);
+      await loadPresetsFromDb();
+    } catch (err: any) {
+      alert(err.message || "Error al eliminar la plantilla.");
+    }
+  };
+
   // Guardar cotización como Pedido en el Sistema (SOLO ADMIN)
   const handleSaveAsOrder = async () => {
     if (!clientName.trim()) {
@@ -268,7 +285,6 @@ export const QuotationView: React.FC<QuotationViewProps> = ({ onOrderCreated }) 
     setOrderSavedSuccess(false);
 
     try {
-      // Formatear notas con el desglose del servicio cotizado
       const notesDetails = [
         `Servicio: ${serviceType || "No especificado"} (${includedMenu || ""})`,
         `Horario: ${eventTime || "Por confirmar"}`,
@@ -277,7 +293,6 @@ export const QuotationView: React.FC<QuotationViewProps> = ({ onOrderCreated }) 
         `Condiciones: ${includeIva ? "Incluye IVA" : "Subtotal neto"}`,
       ].filter(Boolean).join(" | ");
 
-      // Determinar fecha válida ISO o fallback a fecha actual
       let validEventDate = new Date().toISOString();
       const parsedDate = new Date(eventDate);
       if (!isNaN(parsedDate.getTime())) {
@@ -321,7 +336,7 @@ export const QuotationView: React.FC<QuotationViewProps> = ({ onOrderCreated }) 
       const pdf = new jsPDF({
         orientation: "portrait",
         unit: "pt",
-        format: "letter" // 612 x 792 pt
+        format: "letter"
       });
 
       const options = {
@@ -342,7 +357,6 @@ export const QuotationView: React.FC<QuotationViewProps> = ({ onOrderCreated }) 
       const imgData2 = canvas2.toDataURL("image/jpeg", 0.95);
       pdf.addImage(imgData2, "JPEG", 0, 0, 612, 792);
 
-      // Descargar archivo
       const sanitizedName = clientName.trim().replace(/[^a-zA-Z0-9]/g, "_") || "Cliente";
       pdf.save(`Cotizacion_RoseCatering_${sanitizedName}.pdf`);
     } catch (error) {
@@ -363,7 +377,7 @@ export const QuotationView: React.FC<QuotationViewProps> = ({ onOrderCreated }) 
           </div>
           <h1 className="font-serif text-3xl font-bold text-boho-stone">Generador de Cotizaciones</h1>
           <p className="text-sm text-boho-muted">
-            Completa la información o selecciona una plantilla predefinida para emitir la cotización formal.
+            Gestiona plantillas rápidas desde la base de datos o personaliza los campos para emitir la cotización.
           </p>
         </div>
 
@@ -452,25 +466,242 @@ export const QuotationView: React.FC<QuotationViewProps> = ({ onOrderCreated }) 
         </div>
       </div>
 
-      {/* BARRA DE PRESETS / PLANTILLAS RÁPIDAS */}
+      {/* BARRA DE PRESETS / PLANTILLAS RÁPIDAS (DESDE BASE DE DATOS) */}
       <div className="mt-4 bg-boho-surface/80 p-3 rounded-lg border border-boho-sand flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-boho-terracotta shrink-0" />
-          <span className="text-xs font-semibold text-boho-stone">Plantillas Rápidas:</span>
+          <span className="text-xs font-semibold text-boho-stone">Plantillas de BD:</span>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {PRESETS.map((preset, idx) => (
-            <button
-              key={idx}
+        
+        <div className="flex flex-wrap items-center gap-2">
+          {isLoadingPresets ? (
+            <span className="text-xs text-zinc-400 flex items-center gap-1">
+              <RefreshCw className="h-3 w-3 animate-spin" /> Cargando...
+            </span>
+          ) : (
+            presets.map((preset) => (
+              <button
+                key={preset.idPreset}
+                type="button"
+                onClick={() => handleApplyPreset(preset)}
+                className="text-xs px-2.5 py-1 bg-white hover:bg-boho-warm border border-boho-sand rounded-md text-boho-stone transition-all shadow-2xs hover:border-boho-terracotta cursor-pointer font-medium"
+              >
+                {preset.name}
+              </button>
+            ))
+          )}
+
+          {/* Botón Administrar Plantillas (Solo Admin) */}
+          {isAdmin && (
+            <Button
               type="button"
-              onClick={() => handleApplyPreset(preset)}
-              className="text-xs px-2.5 py-1 bg-white hover:bg-boho-warm border border-boho-sand rounded-md text-boho-stone transition-all shadow-2xs hover:border-boho-terracotta cursor-pointer"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsManagingPresets(!isManagingPresets)}
+              className="text-xs h-7 px-2 border-dashed border-boho-terracotta text-boho-terracotta hover:bg-boho-terracotta/5 ml-1"
             >
-              {preset.name}
-            </button>
-          ))}
+              <Settings2 className="h-3.5 w-3.5 mr-1" />
+              {isManagingPresets ? "Cerrar Gestor" : "Gestionar Plantillas"}
+            </Button>
+          )}
         </div>
       </div>
+
+      {/* PANEL GESTOR DE PLANTILLAS (SOLO ADMIN) */}
+      {isAdmin && isManagingPresets && (
+        <Card className="mt-4 border-2 border-boho-terracotta/40 bg-white shadow-md animate-in fade-in duration-200">
+          <CardHeader className="py-3 px-4 bg-boho-warm/50 border-b border-boho-sand flex flex-row items-center justify-between">
+            <CardTitle className="text-sm font-serif font-bold text-boho-stone flex items-center gap-2">
+              <Settings2 className="h-4 w-4 text-boho-terracotta" /> Catálogo de Plantillas en Base de Datos
+            </CardTitle>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => {
+                setEditingPreset({
+                  name: "",
+                  serviceType: "",
+                  includedMenu: "",
+                  pricePerPerson: 0,
+                  foodDetails: "",
+                  complementDetails: "",
+                  includesDetails: "",
+                  defaultDescription: "",
+                  isActive: true
+                });
+              }}
+              className="h-7 text-xs bg-boho-terracotta text-white hover:bg-terracotta-700"
+            >
+              <Plus className="h-3.5 w-3.5 mr-1" /> Nueva Plantilla
+            </Button>
+          </CardHeader>
+          <CardContent className="p-4 space-y-4">
+            {/* Lista actual de plantillas */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {presets.map((p) => (
+                <div key={p.idPreset} className="p-3 rounded-lg border border-zinc-200 bg-zinc-50 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-xs text-zinc-900">{p.name}</span>
+                      <span className="text-[11px] font-bold text-boho-terracotta">${p.pricePerPerson}/persona</span>
+                    </div>
+                    <p className="text-[11px] text-zinc-500 mt-0.5">{p.serviceType} • {p.includedMenu}</p>
+                    {p.foodDetails && (
+                      <p className="text-[10px] text-zinc-400 mt-1 line-clamp-2">{p.foodDetails}</p>
+                    )}
+                  </div>
+                  <div className="mt-3 pt-2 border-t border-zinc-200 flex justify-end gap-1.5">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setEditingPreset(p)}
+                      className="h-6 px-2 text-[11px] text-zinc-600 hover:text-boho-terracotta hover:bg-white"
+                    >
+                      <Edit2 className="h-3 w-3 mr-1" /> Editar
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleDeletePreset(p.idPreset)}
+                      className="h-6 px-2 text-[11px] text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-3 w-3 mr-1" /> Eliminar
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Formulario modal / colapsable para crear o editar plantilla */}
+            {editingPreset && (
+              <form onSubmit={handleSavePreset} className="mt-4 p-4 rounded-xl border border-boho-sand bg-boho-warm/30 space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-boho-sand">
+                  <h4 className="text-xs font-bold text-boho-stone">
+                    {editingPreset.idPreset ? "Editar Plantilla" : "Crear Nueva Plantilla en Base de Datos"}
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() => setEditingPreset(null)}
+                    className="text-zinc-400 hover:text-zinc-600"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-[11px] font-semibold text-zinc-700">Nombre del Botón / Preset *</label>
+                    <Input
+                      value={editingPreset.name || ""}
+                      onChange={(e) => setEditingPreset({ ...editingPreset, name: e.target.value })}
+                      placeholder="Ej. 🍕 Pizza Bar Artesanal"
+                      className="h-8 text-xs mt-1"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold text-zinc-700">Tipo de Servicio *</label>
+                    <Input
+                      value={editingPreset.serviceType || ""}
+                      onChange={(e) => setEditingPreset({ ...editingPreset, serviceType: e.target.value })}
+                      placeholder="Ej. Pizza Bar"
+                      className="h-8 text-xs mt-1"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold text-zinc-700">Menú Incluido</label>
+                    <Input
+                      value={editingPreset.includedMenu || ""}
+                      onChange={(e) => setEditingPreset({ ...editingPreset, includedMenu: e.target.value })}
+                      placeholder="Ej. Pizza artesanal + complementos"
+                      className="h-8 text-xs mt-1"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold text-zinc-700">Precio Sugerido x Persona ($)</label>
+                    <Input
+                      type="number"
+                      value={editingPreset.pricePerPerson ?? 0}
+                      onChange={(e) => setEditingPreset({ ...editingPreset, pricePerPerson: parseFloat(e.target.value) || 0 })}
+                      className="h-8 text-xs mt-1"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="text-[11px] font-semibold text-zinc-700">Descripción en Desglose Económico</label>
+                    <Input
+                      value={editingPreset.defaultDescription || ""}
+                      onChange={(e) => setEditingPreset({ ...editingPreset, defaultDescription: e.target.value })}
+                      placeholder="Ej. Pizza bar artesanal por comensal"
+                      className="h-8 text-xs mt-1"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-[11px] font-semibold text-zinc-700">Comida (Platillos)</label>
+                    <textarea
+                      rows={3}
+                      value={editingPreset.foodDetails || ""}
+                      onChange={(e) => setEditingPreset({ ...editingPreset, foodDetails: e.target.value })}
+                      className="w-full text-xs rounded-md border border-zinc-200 p-2 mt-1 focus:outline-none focus:ring-1 focus:ring-boho-terracotta"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold text-zinc-700">Complementos y Aderezos</label>
+                    <textarea
+                      rows={3}
+                      value={editingPreset.complementDetails || ""}
+                      onChange={(e) => setEditingPreset({ ...editingPreset, complementDetails: e.target.value })}
+                      className="w-full text-xs rounded-md border border-zinc-200 p-2 mt-1 focus:outline-none focus:ring-1 focus:ring-boho-terracotta"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold text-zinc-700">El Servicio Incluye</label>
+                    <textarea
+                      rows={3}
+                      value={editingPreset.includesDetails || ""}
+                      onChange={(e) => setEditingPreset({ ...editingPreset, includesDetails: e.target.value })}
+                      className="w-full text-xs rounded-md border border-zinc-200 p-2 mt-1 focus:outline-none focus:ring-1 focus:ring-boho-terracotta"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2 border-t border-boho-sand">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setEditingPreset(null)}
+                    className="text-xs h-7"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="submit"
+                    size="sm"
+                    disabled={isSavingPreset}
+                    className="text-xs h-7 bg-boho-terracotta text-white hover:bg-terracotta-700"
+                  >
+                    {isSavingPreset ? (
+                      <>
+                        <RefreshCw className="h-3.5 w-3.5 mr-1 animate-spin" /> Guardando...
+                      </>
+                    ) : (
+                      <>
+                        <Check className="h-3.5 w-3.5 mr-1" /> Guardar Plantilla
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </form>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Selector de modo */}
       <div className="mt-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
