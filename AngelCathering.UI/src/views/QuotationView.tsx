@@ -388,20 +388,20 @@ export const QuotationView: React.FC<QuotationViewProps> = ({ onOrderCreated }) 
             variant="outline"
             size="sm"
             onClick={handleResetForm}
-            className="text-xs text-zinc-600 border-zinc-300 hover:text-red-700 hover:bg-red-50"
+            className="text-xs text-boho-text border-boho-border bg-white hover:text-red-700 hover:bg-red-50"
             title="Limpiar formulario"
           >
             <RotateCcw className="h-3.5 w-3.5 mr-1" /> Limpiar
           </Button>
 
           {/* Selector de pestañas Formulario / Vista Previa */}
-          <div className="bg-boho-warm p-1 rounded-lg border border-boho-sand flex gap-1">
+          <div className="bg-boho-surface p-1 rounded-lg border border-boho-border flex gap-1">
             <Button
               type="button"
               variant={activeTab === "editor" ? "default" : "ghost"}
               size="sm"
               onClick={() => setActiveTab("editor")}
-              className={`text-xs ${activeTab === "editor" ? "bg-boho-terracotta text-white" : "text-boho-stone"}`}
+              className={`text-xs ${activeTab === "editor" ? "bg-terracotta-600 text-white hover:bg-terracotta-700" : "text-boho-text hover:bg-boho-surface-hover"}`}
             >
               <FileText className="h-3.5 w-3.5 mr-1" /> Formulario
             </Button>
@@ -410,7 +410,7 @@ export const QuotationView: React.FC<QuotationViewProps> = ({ onOrderCreated }) 
               variant={activeTab === "preview" ? "default" : "ghost"}
               size="sm"
               onClick={() => setActiveTab("preview")}
-              className={`text-xs ${activeTab === "preview" ? "bg-boho-terracotta text-white" : "text-boho-stone"}`}
+              className={`text-xs ${activeTab === "preview" ? "bg-terracotta-600 text-white hover:bg-terracotta-700" : "text-boho-text hover:bg-boho-surface-hover"}`}
             >
               <Eye className="h-3.5 w-3.5 mr-1" /> Vista Previa
             </Button>
@@ -422,10 +422,10 @@ export const QuotationView: React.FC<QuotationViewProps> = ({ onOrderCreated }) 
               type="button"
               onClick={handleSaveAsOrder}
               disabled={isSavingOrder}
-              className={`text-xs font-medium shadow-sm transition-all ${
+              className={`text-xs font-medium shadow-xs transition-all ${
                 orderSavedSuccess 
                   ? "bg-emerald-600 text-white hover:bg-emerald-700" 
-                  : "bg-boho-sage text-white hover:bg-sage-700"
+                  : "bg-sage-600 text-white hover:bg-sage-700"
               }`}
             >
               {isSavingOrder ? (
@@ -449,7 +449,7 @@ export const QuotationView: React.FC<QuotationViewProps> = ({ onOrderCreated }) 
             type="button"
             onClick={handleExportPDF}
             disabled={isExporting}
-            className="bg-boho-terracotta hover:bg-terracotta-700 text-white text-xs font-medium shadow-sm transition-all"
+            className="bg-terracotta-600 hover:bg-terracotta-700 text-white text-xs font-medium shadow-xs transition-all"
           >
             {isExporting ? (
               <>
@@ -498,7 +498,7 @@ export const QuotationView: React.FC<QuotationViewProps> = ({ onOrderCreated }) 
               variant="outline"
               size="sm"
               onClick={() => setIsManagingPresets(!isManagingPresets)}
-              className="text-xs h-7 px-2 border-dashed border-boho-terracotta text-boho-terracotta hover:bg-boho-terracotta/5 ml-1"
+              className="text-xs h-7 px-2.5 border border-terracotta-500 text-terracotta-600 bg-white hover:bg-terracotta-50 ml-1"
             >
               <Settings2 className="h-3.5 w-3.5 mr-1" />
               {isManagingPresets ? "Cerrar Gestor" : "Gestionar Plantillas"}
@@ -509,10 +509,10 @@ export const QuotationView: React.FC<QuotationViewProps> = ({ onOrderCreated }) 
 
       {/* PANEL GESTOR DE PLANTILLAS (SOLO ADMIN) */}
       {isAdmin && isManagingPresets && (
-        <Card className="mt-4 border-2 border-boho-terracotta/40 bg-white shadow-md animate-in fade-in duration-200">
-          <CardHeader className="py-3 px-4 bg-boho-warm/50 border-b border-boho-sand flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-serif font-bold text-boho-stone flex items-center gap-2">
-              <Settings2 className="h-4 w-4 text-boho-terracotta" /> Catálogo de Plantillas en Base de Datos
+        <Card className="mt-4 border-2 border-terracotta-500/40 bg-white shadow-md animate-in fade-in duration-200">
+          <CardHeader className="py-3 px-4 bg-boho-surface/50 border-b border-boho-border flex flex-row items-center justify-between">
+            <CardTitle className="text-sm font-serif font-bold text-boho-text flex items-center gap-2">
+              <Settings2 className="h-4 w-4 text-terracotta-600" /> Catálogo de Plantillas en Base de Datos
             </CardTitle>
             <Button
               type="button"
@@ -530,7 +530,7 @@ export const QuotationView: React.FC<QuotationViewProps> = ({ onOrderCreated }) 
                   isActive: true
                 });
               }}
-              className="h-7 text-xs bg-boho-terracotta text-white hover:bg-terracotta-700"
+              className="h-7 text-xs bg-terracotta-600 text-white hover:bg-terracotta-700 shadow-xs"
             >
               <Plus className="h-3.5 w-3.5 mr-1" /> Nueva Plantilla
             </Button>

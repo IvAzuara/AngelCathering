@@ -33,6 +33,14 @@
   --color-sage-600: #566751;
   --color-sage-700: #40543B;
   --color-sage-800: #33432F;
+
+  /* Aliases de compatibilidad para plantillas y vistas */
+  --color-boho-terracotta: #9E5134;
+  --color-boho-stone: #2D211A;
+  --color-boho-sand: #D8CEBF;
+  --color-boho-warm: #EFEAE1;
+  --color-boho-muted: #6B5A4E;
+  --color-boho-sage: #566751;
 }
 
 /* Clases utilitarias nativas */
