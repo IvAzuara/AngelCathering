@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { api, type MenuItem, type MenuCategory } from "@/services/api";
+import { api, getFullImageUrl, type MenuItem, type MenuCategory } from "@/services/api";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Edit, Trash2, Utensils } from "lucide-react";
+import { Plus, Edit, Trash2, Utensils, Upload, Image as ImageIcon, Loader2 } from "lucide-react";
 
 export const MenuAdminView: React.FC = () => {
   const [items, setItems] = useState<MenuItem[]>([]);
@@ -12,6 +12,7 @@ export const MenuAdminView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Partial<MenuItem> | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
@@ -101,7 +102,7 @@ export const MenuAdminView: React.FC = () => {
             <Card key={item.idItem} className="overflow-hidden flex flex-col border-zinc-200">
               <div className="h-36 bg-zinc-100 relative overflow-hidden">
                 {item.imageUrl ? (
-                  <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
+                  <img src={getFullImageUrl(item.imageUrl)} alt={item.title} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-zinc-400">
                     <Utensils className="h-8 w-8" />
@@ -206,12 +207,77 @@ export const MenuAdminView: React.FC = () => {
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-zinc-700">URL de Imagen</label>
-                  <Input
-                    value={editingItem.imageUrl || ""}
-                    onChange={(e) => setEditingItem({ ...editingItem, imageUrl: e.target.value })}
-                    placeholder="https://..."
-                  />
+                  <label className="text-xs font-semibold text-zinc-700 block mb-1">Imagen del Platillo</label>
+                  
+                  {/* Vista previa si ya tiene imagen */}
+                  {editingItem.imageUrl && (
+                    <div className="mb-2 relative rounded-lg overflow-hidden border border-zinc-200 h-28 bg-zinc-50 flex items-center justify-center">
+                      <img 
+                        src={getFullImageUrl(editingItem.imageUrl)} 
+                        alt="Vista previa" 
+                        className="h-full w-full object-cover" 
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setEditingItem({ ...editingItem, imageUrl: "" })}
+                        className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 text-xs hover:bg-red-700 shadow-sm"
+                        title="Quitar imagen"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-2">
+                    <label className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 border border-dashed rounded-lg text-xs cursor-pointer transition-colors ${
+                      uploadingImage 
+                        ? 'bg-zinc-100 border-zinc-300 text-zinc-400 cursor-not-allowed' 
+                        : 'border-zinc-300 hover:border-terracotta-600 hover:bg-terracotta-50/30 text-zinc-600'
+                    }`}>
+                      {uploadingImage ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin text-terracotta-600" />
+                          <span>Subiendo a Supabase Storage...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-4 w-4 text-terracotta-600" />
+                          <span>Subir imagen desde mi equipo</span>
+                        </>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/avif"
+                        className="hidden"
+                        disabled={uploadingImage}
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+
+                          setUploadingImage(true);
+                          try {
+                            const uploadedPath = await api.uploadMenuImage(file);
+                            setEditingItem({ ...editingItem, imageUrl: uploadedPath });
+                          } catch (err: any) {
+                            alert(err.message || "Error al subir la imagen.");
+                          } finally {
+                            setUploadingImage(false);
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
+                  
+                  {/* Input manual opcional por si quieren usar una URL externa */}
+                  <div className="mt-1.5 flex items-center gap-1.5">
+                    <ImageIcon className="h-3 w-3 text-zinc-400 shrink-0" />
+                    <Input
+                      className="text-xs h-7"
+                      value={editingItem.imageUrl || ""}
+                      onChange={(e) => setEditingItem({ ...editingItem, imageUrl: e.target.value })}
+                      placeholder="o escribe una URL de imagen directamente"
+                    />
+                  </div>
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-zinc-700">Descripción</label>

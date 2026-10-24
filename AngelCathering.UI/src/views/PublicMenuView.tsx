@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useSiteContent } from "@/context/ContentContext";
-import { api, type MenuCategory } from "@/services/api";
+import { api, getFullImageUrl, type MenuCategory } from "@/services/api";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -147,7 +147,7 @@ export const PublicMenuView: React.FC<{ onGoToLogin: () => void }> = ({ onGoToLo
                 {item.imageUrl ? (
                   <div className="h-56 w-full overflow-hidden bg-boho-surface relative">
                     <img
-                      src={item.imageUrl}
+                      src={getFullImageUrl(item.imageUrl)}
                       alt={item.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />

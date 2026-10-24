@@ -11,6 +11,15 @@ export const BASE_URL = envUrl
       ? 'http://localhost:5130' 
       : '');
 
+// Helper para resolver la URL completa de una imagen (sea relativa /uploads/ o absoluta http://)
+export function getFullImageUrl(imageUrl?: string | null): string | undefined {
+  if (!imageUrl) return undefined;
+  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+    return imageUrl;
+  }
+  return `${BASE_URL}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
+}
+
 export interface MenuItem {
   idItem: number;
   idCategory: number;
@@ -115,6 +124,28 @@ export const api = {
       headers: getAuthHeaders(),
     });
     if (!res.ok) throw new Error('Error al eliminar platillo');
+  },
+
+  uploadMenuImage: async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const token = sessionStorage.getItem('token');
+    const res = await fetch(`${BASE_URL}/api/menu/upload-image`, {
+      method: 'POST',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Error al subir imagen al servidor');
+    }
+
+    const data = await res.json();
+    return data.imageUrl as string;
   },
 
   // Pedidos

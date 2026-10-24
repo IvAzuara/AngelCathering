@@ -78,6 +78,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 // Inyección de dependencias
+builder.Services.AddHttpClient();
 builder.Services.AddSingleton<IDbConnectionFactory, DbConnectionFactory>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IMenuRepository, MenuRepository>();
@@ -300,6 +301,88 @@ menuGroup.MapGet("/items/{id:int}", async (int id, IMenuRepository repo) =>
     var item = await repo.GetItemByIdAsync(id);
     return item is not null ? Results.Ok(item) : Results.NotFound();
 });
+
+menuGroup.MapPost("/upload-image", async (IFormFile file, IHttpClientFactory httpClientFactory) =>
+{
+    if (file == null || file.Length == 0)
+    {
+        return Results.BadRequest(new { error = "No se ha seleccionado ningún archivo de imagen." });
+    }
+
+    // Validar extensiones permitidas
+    var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp", ".avif" };
+    var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+    if (!allowedExtensions.Contains(extension))
+    {
+        return Results.BadRequest(new { error = "Formato no permitido. Solo se aceptan imágenes (.jpg, .jpeg, .png, .webp, .avif)." });
+    }
+
+    // Tamaño máximo: 5MB
+    if (file.Length > 5 * 1024 * 1024)
+    {
+        return Results.BadRequest(new { error = "La imagen supera el límite máximo permitido de 5MB." });
+    }
+
+    // Configuración de Supabase Storage
+    var supabaseUrl = Environment.GetEnvironmentVariable("SUPABASE_URL") 
+        ?? "https://zbjztvtagkorxejxvyjz.supabase.co";
+    var supabaseKey = Environment.GetEnvironmentVariable("SUPABASE_SERVICE_ROLE_KEY") 
+        ?? Environment.GetEnvironmentVariable("SUPABASE_KEY")
+        ?? Environment.GetEnvironmentVariable("SUPABASE_ANON_KEY");
+    var bucketName = Environment.GetEnvironmentVariable("SUPABASE_BUCKET") ?? "menu-images";
+
+    if (string.IsNullOrWhiteSpace(supabaseKey))
+    {
+        return Results.Problem(
+            title: "Supabase Storage no configurado",
+            detail: "Falta configurar la variable de entorno SUPABASE_KEY o SUPABASE_SERVICE_ROLE_KEY en el servidor.",
+            statusCode: 500
+        );
+    }
+
+    // Nombre único para el archivo en el bucket
+    var uniqueFileName = $"{Guid.NewGuid():N}{extension}";
+
+    // Determinar Content-Type
+    var contentType = extension switch
+    {
+        ".jpg" or ".jpeg" => "image/jpeg",
+        ".png" => "image/png",
+        ".webp" => "image/webp",
+        ".avif" => "image/avif",
+        _ => "application/octet-stream"
+    };
+
+    var client = httpClientFactory.CreateClient();
+    var cleanBaseUrl = supabaseUrl.TrimEnd('/');
+    var uploadEndpoint = $"{cleanBaseUrl}/storage/v1/object/{bucketName}/{uniqueFileName}";
+
+    using var requestMessage = new HttpRequestMessage(HttpMethod.Post, uploadEndpoint);
+    requestMessage.Headers.Add("apikey", supabaseKey);
+    requestMessage.Headers.Add("Authorization", $"Bearer {supabaseKey}");
+
+    using var stream = file.OpenReadStream();
+    using var streamContent = new StreamContent(stream);
+    streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
+    requestMessage.Content = streamContent;
+
+    var response = await client.SendAsync(requestMessage);
+
+    if (!response.IsSuccessStatusCode)
+    {
+        var errorContent = await response.Content.ReadAsStringAsync();
+        return Results.Problem(
+            title: "Error al subir imagen a Supabase Storage",
+            detail: $"Supabase respondió con código {(int)response.StatusCode}: {errorContent}. Asegúrate de que el bucket '{bucketName}' exista y sea público.",
+            statusCode: (int)response.StatusCode
+        );
+    }
+
+    // URL pública permanente de Supabase Storage
+    var publicUrl = $"{cleanBaseUrl}/storage/v1/object/public/{bucketName}/{uniqueFileName}";
+
+    return Results.Ok(new { imageUrl = publicUrl });
+}).DisableAntiforgery();
 
 menuGroup.MapPost("/items", async (UpsertMenuItemDto dto, IMenuRepository repo) =>
 {
