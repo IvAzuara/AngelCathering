@@ -136,12 +136,42 @@ app.MapGet("/api/diagnostics/db", async (IDbConnectionFactory db) =>
         }
         tableReader.Close();
 
+        // Probar ejecución de fn_menu_category_list
+        object? testCategoryResult = null;
+        string? testCategoryError = null;
+        try
+        {
+            cmd.CommandText = "SELECT COUNT(*) FROM fn_menu_category_list();";
+            testCategoryResult = cmd.ExecuteScalar();
+        }
+        catch (Exception fnEx)
+        {
+            testCategoryError = fnEx.Message;
+        }
+
+        // Probar ejecución de fn_order_list_history
+        object? testOrderResult = null;
+        string? testOrderError = null;
+        try
+        {
+            cmd.CommandText = "SELECT COUNT(*) FROM fn_order_list_history();";
+            testOrderResult = cmd.ExecuteScalar();
+        }
+        catch (Exception fnEx)
+        {
+            testOrderError = fnEx.Message;
+        }
+
         return Results.Ok(new
         {
             status = "connected",
             database = currentDb,
             user = currentUser,
             tablesFound = tables,
+            testCategoryResult,
+            testCategoryError,
+            testOrderResult,
+            testOrderError,
             connectionStringConfigured = maskedConn,
             serverVersion = version
         });
