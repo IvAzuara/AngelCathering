@@ -97,7 +97,7 @@ public class MenuRepository : IMenuRepository
                 @Id, @IdCategory, @Title, @Description, @Price, @UnitLabel, @ImageUrl, @IsAvailable
             );
         """;
-        var rows = await conn.ExecuteAsync(sql, new
+        await conn.ExecuteAsync(sql, new
         {
             Id = id,
             dto.IdCategory,
@@ -108,15 +108,15 @@ public class MenuRepository : IMenuRepository
             dto.ImageUrl,
             dto.IsAvailable
         });
-        return rows >= 0;
+        return true;
     }
 
     public async Task<bool> DeleteItemAsync(int id)
     {
         using var conn = _db.CreateConnection();
         const string sql = "CALL sp_menu_item_delete(@Id);";
-        var rows = await conn.ExecuteAsync(sql, new { Id = id });
-        return rows >= 0;
+        await conn.ExecuteAsync(sql, new { Id = id });
+        return true;
     }
 
     public async Task<IEnumerable<MenuCategory>> GetCategoriesAsync()

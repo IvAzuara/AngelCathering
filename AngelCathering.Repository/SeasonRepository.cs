@@ -73,7 +73,7 @@ public class SeasonRepository : ISeasonRepository
                 @Id, @Name, @Slug, @BadgeText, @Description, @BannerUrl, @IsActive
             );
         """;
-        var rows = await conn.ExecuteAsync(sql, new
+        await conn.ExecuteAsync(sql, new
         {
             Id = id,
             dto.Name,
@@ -83,7 +83,7 @@ public class SeasonRepository : ISeasonRepository
             dto.BannerUrl,
             dto.IsActive
         });
-        return rows >= 0;
+        return true;
     }
 
     public async Task<bool> ToggleActiveAsync(int id, bool isActive)
@@ -92,7 +92,7 @@ public class SeasonRepository : ISeasonRepository
         const string sql = """
             CALL sp_season_toggle_active(@Id, @IsActive);
         """;
-        var rows = await conn.ExecuteAsync(sql, new { Id = id, IsActive = isActive });
-        return rows >= 0;
+        await conn.ExecuteAsync(sql, new { Id = id, IsActive = isActive });
+        return true;
     }
 }

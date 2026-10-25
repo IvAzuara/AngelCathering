@@ -87,7 +87,7 @@ public class OrderRepository : IOrderRepository
                 @TotalEstimated, @Notes
             );
         """;
-        var rows = await conn.ExecuteAsync(sql, new
+        await conn.ExecuteAsync(sql, new
         {
             Id = id,
             dto.CustomerName,
@@ -102,7 +102,7 @@ public class OrderRepository : IOrderRepository
             dto.TotalEstimated,
             dto.Notes
         });
-        return rows >= 0;
+        return true;
     }
 
     public async Task<bool> UpdateStatusAsync(int id, UpdateOrderStatusDto dto)
@@ -113,21 +113,21 @@ public class OrderRepository : IOrderRepository
                 @Id, @Status, @IsUrgent, @SortPriority
             );
         """;
-        var rows = await conn.ExecuteAsync(sql, new
+        await conn.ExecuteAsync(sql, new
         {
             Id = id,
             dto.Status,
             dto.IsUrgent,
             dto.SortPriority
         });
-        return rows >= 0;
+        return true;
     }
 
     public async Task<bool> DeleteOrderAsync(int id)
     {
         using var conn = _db.CreateConnection();
         const string sql = "CALL sp_order_delete(@Id);";
-        var rows = await conn.ExecuteAsync(sql, new { Id = id });
-        return rows >= 0;
+        await conn.ExecuteAsync(sql, new { Id = id });
+        return true;
     }
 }

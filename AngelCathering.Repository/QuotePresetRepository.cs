@@ -82,7 +82,7 @@ public class QuotePresetRepository : IQuotePresetRepository
                 @FoodDetails, @ComplementDetails, @IncludesDetails, @DefaultDescription, @IsActive
             );
         """;
-        var rows = await conn.ExecuteAsync(sql, new
+        await conn.ExecuteAsync(sql, new
         {
             Id = id,
             dto.Name,
@@ -95,7 +95,7 @@ public class QuotePresetRepository : IQuotePresetRepository
             dto.DefaultDescription,
             dto.IsActive
         });
-        return rows >= 0;
+        return true;
     }
 
     public async Task<bool> DeletePresetAsync(int id)
@@ -104,7 +104,7 @@ public class QuotePresetRepository : IQuotePresetRepository
         const string sql = """
             CALL sp_quote_preset_delete(@Id);
         """;
-        var rows = await conn.ExecuteAsync(sql, new { Id = id });
-        return rows >= 0;
+        await conn.ExecuteAsync(sql, new { Id = id });
+        return true;
     }
 }
